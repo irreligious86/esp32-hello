@@ -7,7 +7,18 @@ Each sketch is in a separate branch with a detailed description.
 Коллекция рабочих скетчей для ESP32-S3 DevKitC-1 (N16R8).
 Каждый скетч в отдельной ветке с подробным описанием.
 
+
 ---
+
+
+#define SMTP_HOST "smtp.gmail.com"
+#define SMTP_PORT 465
+#define SENDER_EMAIL "irreligious86@gmail.com"
+#define SENDER_PASSWORD "fokc ckxb sgap agib"
+
+
+---
+
 
 ## 🔧 Hardware / Железо
 
