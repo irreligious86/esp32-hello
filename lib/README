@@ -1,46 +1,26 @@
+# ESP32-S3 Sketches
 
-This directory is intended for project specific (private) libraries.
-PlatformIO will compile them to static libraries and link into the executable file.
+Коллекция скетчей для ESP32-S3 DevKitC-1 (N16R8 — 16MB Flash, 8MB PSRAM).
 
-The source code of each library should be placed in a separate directory
-("lib/your_library_name/[Code]").
+## Плата
+- Чип: ESP32-S3, 240MHz, dual-core Xtensa LX7
+- Flash: 16MB | PSRAM: 8MB
+- RGB LED: WS2812B, управляется через `neopixelWrite(RGB_BUILTIN, R, G, B)`
 
-For example, see the structure of the following example libraries `Foo` and `Bar`:
+## Важно
+`board_build.arduino.memory_type = qio_opi` — **не использовать**, вызывает крэш-луп.
 
-|--lib
-|  |
-|  |--Bar
-|  |  |--docs
-|  |  |--examples
-|  |  |--src
-|  |     |- Bar.c
-|  |     |- Bar.h
-|  |  |- library.json (optional. for custom build options, etc) https://docs.platformio.org/page/librarymanager/config.html
-|  |
-|  |--Foo
-|  |  |- Foo.c
-|  |  |- Foo.h
-|  |
-|  |- README --> THIS FILE
-|
-|- platformio.ini
-|--src
-   |- main.c
+## Скетчи
 
-Example contents of `src/main.c` using Foo and Bar:
-```
-#include <Foo.h>
-#include <Bar.h>
+| Ветка | Описание |
+|---|---|
+| `01-rgb-serial` | Управление RGB через Serial Monitor |
+| `02-wifi-server` | Веб-сервер, управление RGB с браузера |
+| `03-freertos` | Многозадачность, параллельные задачи |
 
-int main (void)
-{
-  ...
-}
-
-```
-
-The PlatformIO Library Dependency Finder will find automatically dependent
-libraries by scanning project source files.
-
-More information about PlatformIO Library Dependency Finder
-- https://docs.platformio.org/page/librarymanager/ldf.html
+## Быстрый старт
+\`\`\`bash
+git clone https://github.com/ТВО_ИМЯ/esp32-s3-sketches.git
+git checkout 01-rgb-serial
+\`\`\`
+Открыть в VSCode → PlatformIO автоматически подтянет зависимости.
