@@ -279,3 +279,99 @@ Connect to `ESP32-Setup` with password `12345678` and open `192.168.4.1/settings
 | AP settings page / Настройки в AP режиме | `http://192.168.4.1/settings` |
 | AP network name / Имя AP сети | `ESP32-Setup` |
 | AP password / Пароль AP | `12345678` |
+
+
+
+---
+
+## 📱 Bluetooth BLE Control / Управление по Bluetooth
+
+ESP32 runs a BLE NUS (Nordic UART Service) server visible as `ESP32-Scanner`.
+Works independently of Wi-Fi — useful when IP address is unknown or network is unavailable.
+
+### Required App / Приложение
+
+| Platform | App | Where |
+|---|---|---|
+| Android | Serial Bluetooth Terminal by Kai Morich | Play Store |
+| iOS | nRF Toolbox or LightBlue | App Store |
+
+Connect to device named `ESP32-Scanner`.
+
+---
+
+### Commands / Команды
+
+| Command | Description / Описание |
+|---|---|
+| `scan` | Start full network scan / Запустить сканирование |
+| `status` | WiFi state, IP, RSSI, scanning flag / Статус WiFi и сканирования |
+| `ip` | Current IP address and web URLs / IP адрес и URL веб интерфейса |
+| `results` | List all found devices / Список всех найденных устройств |
+| `help` | Show all commands / Список команд |
+
+During scan — automatic progress update every 30 seconds:
+Scanning... 127/254 (50%) found: 3
+
+On scan complete — automatic notification:
+Scan complete! Found 13 devices. Report sent to email.
+
+---
+
+### Usage Scenarios / Сценарии применения
+
+**Scenario 1 — Unknown IP, new network**
+You powered on ESP32 in a new location and don't know its IP.
+Connect via BLE → type `ip` → get the address → open in browser.
+
+**Scenario 2 — Quick scan check without opening browser**
+Connected via BLE → type `status` to see if scan is running →
+type `results` to see found devices directly in terminal.
+
+**Scenario 3 — Trigger scan remotely**
+You left ESP32 plugged in at home.
+Connect via BLE from anywhere in Bluetooth range →
+type `scan` → wait for completion notification →
+check email for full HTML report.
+
+**Scenario 4 — No Wi-Fi at all**
+ESP32 in AP mode (ESP32-Setup network).
+Connect phone to ESP32-Setup →
+simultaneously keep BLE terminal open →
+use `status` to monitor connection state while configuring via web.
+
+---
+
+### Network Switching / Переключение сети
+
+**Normal boot / Обычный запуск:**
+Press RST → RGB white (3s) → blue (connecting) → green (ready)
+
+**Force AP mode / Принудительный AP режим:**
+
+Press RST → release
+Immediately hold BOOT
+Hold 3 seconds → RGB turns orange
+Release BOOT
+Connect to: ESP32-Setup / password: 12345678
+Open: http://192.168.4.1/settings
+Enter new network → Save & Reboot
+
+
+**Auto AP mode / Автоматический AP:**
+If saved network unreachable after 5 attempts → ESP32 auto-starts AP.
+Connect to ESP32-Setup and reconfigure via 192.168.4.1/settings.
+
+---
+
+### Access Summary / Краткая справка доступа
+
+| Situation / Ситуация | Address / Адрес |
+|---|---|
+| Same network / Та же сеть | `http://esp32.local` or `http://192.168.1.200` |
+| AP mode / Режим точки доступа | `http://192.168.4.1` |
+| Settings / Настройки | `http://esp32.local/settings` |
+| AP settings / Настройки в AP | `http://192.168.4.1/settings` |
+| BLE device / BLE устройство | `ESP32-Scanner` |
+| AP network / Сеть AP | `ESP32-Setup` / `12345678` |
+| Full manual / Полный мануал | `docs/manual.html` |
