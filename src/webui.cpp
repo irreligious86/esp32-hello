@@ -5,75 +5,50 @@
 #include <EEPROM.h>
 #include <WiFi.h>
 
-// Внешние переменные из mailer.cpp
 extern String smtpPassword;
 
-// =====================
-// EEPROM утилиты
-// =====================
 void saveSettings(const String& ssid, const String& pass, const String& smtpPass) {
   EEPROM.begin(EEPROM_SIZE);
-
-  // Очищаем
   for (int i = 0; i < EEPROM_SIZE; i++) EEPROM.write(i, 0);
-
-  // Пишем SSID
   for (int i = 0; i < (int)ssid.length() && i < 31; i++)
     EEPROM.write(EEPROM_WIFI_SSID + i, ssid[i]);
-
-  // Пишем пароль WiFi
   for (int i = 0; i < (int)pass.length() && i < 63; i++)
     EEPROM.write(EEPROM_WIFI_PASS + i, pass[i]);
-
-  // Пишем SMTP пароль
   for (int i = 0; i < (int)smtpPass.length() && i < 31; i++)
     EEPROM.write(EEPROM_SMTP_PASS + i, smtpPass[i]);
-
-  // Флаг валидности
   EEPROM.write(EEPROM_VALID_FLAG, 0xAB);
   EEPROM.commit();
   EEPROM.end();
-
-  Serial.println("Настройки сохранены в EEPROM");
+  Serial.println("Settings saved to EEPROM");
 }
 
 void loadSettings(String& ssid, String& pass, String& smtpPass) {
   EEPROM.begin(EEPROM_SIZE);
-
   if (EEPROM.read(EEPROM_VALID_FLAG) != 0xAB) {
-    // EEPROM пустой — используем дефолты
     ssid     = DEFAULT_WIFI_SSID;
     pass     = DEFAULT_WIFI_PASS;
     smtpPass = DEFAULT_SMTP_PASS;
-    Serial.println("EEPROM пустой — используем дефолты");
+    Serial.println("EEPROM empty — using defaults");
     EEPROM.end();
     return;
   }
-
   ssid = ""; pass = ""; smtpPass = "";
   for (int i = 0; i < 32; i++) {
     char c = EEPROM.read(EEPROM_WIFI_SSID + i);
-    if (c == 0) break;
-    ssid += c;
+    if (c == 0) break; ssid += c;
   }
   for (int i = 0; i < 64; i++) {
     char c = EEPROM.read(EEPROM_WIFI_PASS + i);
-    if (c == 0) break;
-    pass += c;
+    if (c == 0) break; pass += c;
   }
   for (int i = 0; i < 32; i++) {
     char c = EEPROM.read(EEPROM_SMTP_PASS + i);
-    if (c == 0) break;
-    smtpPass += c;
+    if (c == 0) break; smtpPass += c;
   }
-
   EEPROM.end();
-  Serial.println("Загружено из EEPROM: SSID=" + ssid);
+  Serial.println("Loaded from EEPROM: SSID=" + ssid);
 }
 
-// =====================
-// Страница сканера
-// =====================
 void sendScanPage(WebServer& server) {
   String html =
     "<!DOCTYPE html><html><head>"
@@ -109,28 +84,19 @@ void sendScanPage(WebServer& server) {
     ".progress{background:#111;border-radius:4px;height:6px;margin:10px 0;}"
     ".bar{background:#e67e22;height:6px;border-radius:4px;transition:width 0.5s;}"
     ".radar-wrap{position:relative;width:120px;height:120px;margin:20px auto;}"
-    ".radar-circle{width:120px;height:120px;border-radius:50%;"
-    "border:1px solid #00ff8844;position:absolute;}"
-    ".radar-circle2{width:80px;height:80px;border-radius:50%;"
-    "border:1px solid #00ff8833;position:absolute;top:20px;left:20px;}"
-    ".radar-circle3{width:40px;height:40px;border-radius:50%;"
-    "border:1px solid #00ff8855;position:absolute;top:40px;left:40px;}"
-    ".radar-sweep{width:60px;height:2px;"
-    "background:linear-gradient(90deg,transparent,#00ff88);"
-    "position:absolute;top:59px;left:60px;transform-origin:left center;"
-    "animation:spin 2s linear infinite;}"
-    ".radar-dot{width:6px;height:6px;border-radius:50%;background:#00ff88;"
-    "position:absolute;top:57px;left:57px;}"
-    ".ping-ring{width:120px;height:120px;border-radius:50%;"
-    "border:2px solid #00ff8866;position:absolute;"
-    "animation:ping 2s ease-out infinite;}"
+    ".radar-circle{width:120px;height:120px;border-radius:50%;border:1px solid #00ff8844;position:absolute;}"
+    ".radar-circle2{width:80px;height:80px;border-radius:50%;border:1px solid #00ff8833;position:absolute;top:20px;left:20px;}"
+    ".radar-circle3{width:40px;height:40px;border-radius:50%;border:1px solid #00ff8855;position:absolute;top:40px;left:40px;}"
+    ".radar-sweep{width:60px;height:2px;background:linear-gradient(90deg,transparent,#00ff88);"
+    "position:absolute;top:59px;left:60px;transform-origin:left center;animation:spin 2s linear infinite;}"
+    ".radar-dot{width:6px;height:6px;border-radius:50%;background:#00ff88;position:absolute;top:57px;left:57px;}"
+    ".ping-ring{width:120px;height:120px;border-radius:50%;border:2px solid #00ff8866;position:absolute;animation:ping 2s ease-out infinite;}"
     ".counter{font-size:48px;color:#00ff88;text-align:center;font-weight:bold;margin:5px 0;}"
     ".status-text{text-align:center;color:#555;font-size:12px;margin:0;}"
     ".elapsed{text-align:center;color:#333;font-size:11px;margin-top:4px;}"
     ".done-wrap{text-align:center;padding:20px 0;}"
-    ".done-circle{width:100px;height:100px;border-radius:50%;"
-    "border:3px solid #00ff88;margin:0 auto 15px;"
-    "animation:glow 1.5s ease-in-out infinite;"
+    ".done-circle{width:100px;height:100px;border-radius:50%;border:3px solid #00ff88;"
+    "margin:0 auto 15px;animation:glow 1.5s ease-in-out infinite;"
     "display:flex;align-items:center;justify-content:center;font-size:40px;}"
     ".done-title{color:white;font-size:20px;font-weight:bold;margin:10px 0;}"
     ".done-sub{color:#555;font-size:12px;}"
@@ -147,17 +113,14 @@ void sendScanPage(WebServer& server) {
   html += " | Uptime: " + String(millis()/1000) + "s";
   html += " | FW: " FIRMWARE_VERSION "</div>";
 
-  // Кнопки
   if (!scanning) {
-    html += "<a href='/startscan' class='scan'>🔍 Сканировать</a>";
-    html += "<a href='/settings' class='settings'>⚙️ Настройки</a>";
+    html += "<a href='/startscan' class='scan'>🔍 Scan Network</a>";
+    html += "<a href='/settings' class='settings'>⚙️ Settings</a>";
   }
 
-  // Радар во время сканирования
   if (scanning) {
     int pct = (currentScanIP * 100) / 254;
     unsigned long elapsed = (millis() - scanStart) / 1000;
-
     html += "<div class='radar-wrap'>"
             "<div class='ping-ring'></div>"
             "<div class='radar-circle'></div>"
@@ -167,28 +130,26 @@ void sendScanPage(WebServer& server) {
             "<div class='radar-dot'></div>"
             "</div>";
     html += "<div class='counter'>" + String(deviceCount) + "</div>";
-    html += "<p class='status-text'>устройств обнаружено</p>";
-    html += "<p class='elapsed'>сканирую " + String(currentScanIP) +
-            "/254 · " + String(pct) + "% · " + String(elapsed) + "с</p>";
+    html += "<p class='status-text'>devices found</p>";
+    html += "<p class='elapsed'>scanning " + String(currentScanIP) +
+            "/254 · " + String(pct) + "% · " + String(elapsed) + "s</p>";
     html += "<div class='progress'><div class='bar' style='width:" +
             String(pct) + "%'></div></div>";
-    html += "<p style='color:#333;font-size:11px;text-align:center'>"
-            "обновление каждые 5 сек</p>";
+    html += "<p style='color:#333;font-size:11px;text-align:center'>auto-refresh every 5 sec</p>";
   }
 
-  // Финальный экран
   if (scanDone && !scanning) {
     html += "<div class='done-wrap'>"
             "<div class='done-circle'>✓</div>"
-            "<div class='done-title'>Сканирование завершено</div>"
-            "<div class='done-sub'>Найдено: " + String(deviceCount) +
-            " · Время: " + String((millis()-scanStart)/1000) + " сек</div>"
-            "<div class='done-sub' style='margin-top:6px'>"
-            "📧 Отчёт → " RECIPIENT_EMAIL "</div>"
+            "<div class='done-title'>Scan Complete</div>"
+            "<div class='done-sub'>Found: " + String(deviceCount) +
+            " devices · Time: " + String((millis()-scanStart)/1000) + "s</div>"
+            "<div class='done-sub' style='margin-top:6px'>📧 Report sent to " RECIPIENT_EMAIL "</div>"
             "</div>";
+    html += "<a href='/startscan' class='scan' style='margin-top:10px'>🔍 Scan Again</a>";
+    html += "<a href='/settings' class='settings'>⚙️ Settings</a>";
   }
 
-  // Таблица
   if (deviceCount > 0) {
     html += "<table><tr>"
             "<th>#</th><th>IP</th><th>MAC</th><th>Vendor</th>"
@@ -217,9 +178,6 @@ void sendScanPage(WebServer& server) {
   server.send(200, "text/html", html);
 }
 
-// =====================
-// Страница настроек
-// =====================
 void sendSettingsPage(WebServer& server) {
   String currentSsid = WiFi.SSID();
 
@@ -227,7 +185,7 @@ void sendSettingsPage(WebServer& server) {
     "<!DOCTYPE html><html><head>"
     "<meta charset='utf-8'>"
     "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-    "<title>Настройки</title>"
+    "<title>ESP32 Settings</title>"
     "<style>"
     "body{font-family:monospace;padding:20px;background:#0d0d0d;color:#00ff88;margin:0;}"
     "h2{color:white;border-bottom:1px solid #222;padding-bottom:10px;}"
@@ -244,39 +202,35 @@ void sendSettingsPage(WebServer& server) {
     ".save{background:#27ae60;}"
     ".back{background:#2c3e50;}"
     ".warn{color:#e74c3c;font-size:11px;margin-top:8px;}"
+    ".tip{color:#333;font-size:11px;margin-top:6px;}"
     "a{color:#555;text-decoration:none;}"
     "</style></head><body>"
-    "<h2>⚙️ Настройки</h2>"
-
+    "<h2>⚙️ ESP32 Settings</h2>"
     "<form method='POST' action='/savesettings'>"
-
     "<div class='group'>"
-    "<h3>📶 Wi-Fi</h3>"
-    "<label>SSID (имя сети)</label>"
-    "<input type='text' name='ssid' value='" + currentSsid + "' placeholder='Название сети'>"
-    "<label>Пароль Wi-Fi</label>"
-    "<input type='password' name='wifipass' placeholder='Оставь пустым если без пароля'>"
+    "<h3>📶 Wi-Fi Network</h3>"
+    "<label>SSID (network name)</label>"
+    "<input type='text' name='ssid' value='" + currentSsid + "' placeholder='Network name'>"
+    "<label>Wi-Fi Password</label>"
+    "<input type='password' name='wifipass' placeholder='Leave empty if open network'>"
+    "<p class='tip'>Current network: <b style='color:#00ff88'>" + currentSsid + "</b></p>"
     "</div>"
-
     "<div class='group'>"
     "<h3>📧 Gmail App Password</h3>"
-    "<label>Пароль приложения Gmail</label>"
+    "<label>App Password (16 characters)</label>"
     "<input type='password' name='smtppass' placeholder='xxxx xxxx xxxx xxxx'>"
-    "<p class='warn'>⚠️ Оставь пустым чтобы не менять текущий пароль</p>"
+    "<p class='warn'>⚠️ Leave empty to keep current password</p>"
+    "<p class='tip'>Generate at: myaccount.google.com/apppasswords</p>"
     "</div>"
-
-    "<button type='submit' class='save'>💾 Сохранить и перезагрузить</button>"
+    "<button type='submit' class='save'>💾 Save & Reboot</button>"
     "</form>"
     "<br>"
-    "<a href='/'><button class='back'>← Назад</button></a>"
+    "<a href='/'><button class='back'>← Back</button></a>"
     "</body></html>";
 
   server.send(200, "text/html", html);
 }
 
-// =====================
-// Регистрация маршрутов
-// =====================
 void setupWebUI(WebServer& server) {
   server.on("/", [&server]() {
     sendScanPage(server);
@@ -297,20 +251,18 @@ void setupWebUI(WebServer& server) {
     String newWifiPass = server.arg("wifipass");
     String newSmtpPass = server.arg("smtppass");
 
-    // Если поле пустое — оставляем текущее
-    if (newSsid.length() == 0)     newSsid     = WiFi.SSID();
-    if (newSmtpPass.length() > 0)  smtpPassword = newSmtpPass;
+    if (newSsid.length() == 0)    newSsid      = WiFi.SSID();
+    if (newSmtpPass.length() > 0) smtpPassword = newSmtpPass;
 
     saveSettings(newSsid, newWifiPass, smtpPassword);
 
-    // Страница подтверждения
     server.send(200, "text/html",
       "<html><body style='font-family:monospace;background:#0d0d0d;"
       "color:#00ff88;padding:40px;text-align:center'>"
-      "<h2 style='color:white'>✓ Сохранено</h2>"
-      "<p style='color:#555'>Перезагружаюсь и подключаюсь к: <b style='color:#00ff88'>"
+      "<h2 style='color:white'>✓ Saved</h2>"
+      "<p style='color:#555'>Rebooting and connecting to: <b style='color:#00ff88'>"
       + newSsid + "</b></p>"
-      "<p style='color:#333;font-size:12px'>Страница обновится через 8 секунд</p>"
+      "<p style='color:#333;font-size:12px'>Page will refresh in 8 seconds</p>"
       "<meta http-equiv='refresh' content='8;url=/'>"
       "</body></html>");
 
