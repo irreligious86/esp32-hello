@@ -199,3 +199,83 @@ Scan of 254 addresses takes 15–20 minutes due to port scanning per host. Ск�
 OUI vendor lookup covers 35 common manufacturers — expand `ouiTable[]` in `scanner.cpp` to add more. OUI база покрывает 35 производителей — расширяй `ouiTable[]` в `scanner.cpp`.
 
 All credentials stored in private repository. Все пароли хранятся в приватном репозитории.
+
+
+---
+
+## 🔌 Network Setup & Switching / Настройка сети и переключение
+
+### Normal boot / Обычный запуск
+
+Just power on or press RST. ESP32 connects to the saved network automatically.
+Просто включи питание или нажми RST. ESP32 подключится к сохранённой сети автоматически.
+
+RGB indicator / RGB индикатор:
+- 🔵 Blue — connecting / подключается
+- 🟢 Green — connected, ready / подключено, готово
+- 🔴 Red blinking — no network / нет сети
+- 🟠 Orange — AP mode active / режим точки доступа
+
+---
+
+### Access web interface / Доступ к веб интерфейсу
+
+When connected to your network / Когда подключён к вашей сети:
+http://esp32.local        ← works on all platforms / работает везде
+http://192.168.1.200      ← fixed IP, always the same / фиксированный IP
+
+Settings page / Страница настроек:
+http://esp32.local/settings
+http://192.168.1.200/settings
+
+---
+
+### Switch to a new network / Переключение на другую сеть
+
+**Without a laptop — from phone only / Без ноутбука — только с телефона:**
+
+**Step 1** — Press RST to reboot / Нажми RST для перезагрузки
+
+**Step 2** — Immediately hold BOOT button for 3 seconds / Сразу зажми BOOT на 3 секунды
+- RGB turns white during wait / RGB белый пока ждёт
+- RGB turns orange when AP is ready / RGB оранжевый когда AP готов
+
+**Step 3** — On your phone open Wi-Fi settings / На телефоне открой настройки Wi-Fi
+- Connect to network / Подключись к сети: `ESP32-Setup`
+- Password / Пароль: `12345678`
+
+**Step 4** — Open browser / Открой браузер:
+http://192.168.4.1/settings
+
+**Step 5** — Enter new network credentials / Введи данные новой сети:
+- SSID — network name / имя сети
+- Password — network password / пароль сети
+- Gmail App Password — leave empty to keep current / оставь пустым чтобы не менять
+
+**Step 6** — Press Save & Reboot / Нажми Save & Reboot
+- ESP32 reboots and connects to the new network / ESP32 перезагрузится и подключится к новой сети
+- RGB turns green when connected / RGB станет зелёным когда подключится
+
+---
+
+### If ESP32 can't connect / Если ESP32 не может подключиться
+
+If saved network is unavailable ESP32 automatically starts AP mode.
+Если сохранённая сеть недоступна ESP32 автоматически поднимает точку доступа.
+
+Connect to `ESP32-Setup` with password `12345678` and open `192.168.4.1/settings`.
+Подключись к `ESP32-Setup` с паролем `12345678` и открой `192.168.4.1/settings`.
+
+---
+
+### Quick reference / Краткая справка
+
+| Action / Действие | How / Как |
+|---|---|
+| Normal start / Обычный старт | Press RST / Нажми RST |
+| Force AP mode / Принудительный AP | RST → hold BOOT 3 sec / RST → держи BOOT 3 сек |
+| Open web UI / Открыть веб | `http://esp32.local` or `http://192.168.1.200` |
+| Open settings / Открыть настройки | `http://esp32.local/settings` |
+| AP settings page / Настройки в AP режиме | `http://192.168.4.1/settings` |
+| AP network name / Имя AP сети | `ESP32-Setup` |
+| AP password / Пароль AP | `12345678` |
