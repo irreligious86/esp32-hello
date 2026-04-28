@@ -1,11 +1,8 @@
-# ESP32-S3 DevKitC-1 — Sketches & Experiments
-# ESP32-S3 DevKitC-1 — Скетчи и эксперименты
+# ESP32-S3 DevKitC-1 — Network Scanner & Sketches / Сетевой сканер и скетчи
 
-A collection of working sketches for ESP32-S3 DevKitC-1 (N16R8).
-Each sketch is in a separate branch with a detailed description.
+A collection of working sketches for ESP32-S3 DevKitC-1 (N16R8). Each sketch is in a separate branch. The most advanced one is the network scanner with web UI, Gmail reports, and EEPROM settings.
 
-Коллекция рабочих скетчей для ESP32-S3 DevKitC-1 (N16R8).
-Каждый скетч в отдельной ветке с подробным описанием.
+Коллекция рабочих скетчей для ESP32-S3 DevKitC-1 (N16R8). Каждый скетч в отдельной ветке. Самый продвинутый — сетевой сканер с веб интерфейсом, отчётами на Gmail и настройками в EEPROM.
 
 ---
 
@@ -21,7 +18,7 @@ Each sketch is in a separate branch with a detailed description.
 | Wi-Fi | 802.11 b/g/n, 2.4GHz |
 | Bluetooth | BLE 5.0 |
 | USB | 2x Type-C — UART (CH343) + native USB-OTG |
-| RGB LED | WS2812B, pin defined by macro RGB_BUILTIN |
+| RGB LED | WS2812B — `neopixelWrite(RGB_BUILTIN, R, G, B)` |
 | MAC | D8:3B:DA:A4:CC:08 |
 
 ---
@@ -46,43 +43,125 @@ Each sketch is in a separate branch with a detailed description.
 platform = espressif32
 board = esp32-s3-devkitc-1
 framework = arduino
-
 monitor_speed = 115200
 upload_speed = 921600
 ```
 
-⚠️ **Do NOT add / Не добавлять** `board_build.arduino.memory_type = qio_opi`
-Causes infinite crash-loop (RTC_SW_SYS_RST) / Вызывает бесконечный крэш-луп
+⚠️ NEVER add / НИКОГДА не добавлять: `board_build.arduino.memory_type = qio_opi` — causes infinite crash-loop RTC_SW_SYS_RST / вызывает бесконечный крэш-луп
 
 ---
 
 ## 💡 Built-in RGB LED / Встроенный RGB светодиод
 
-```cpp
-// No libraries needed — function is built into the framework
-// Библиотеки не нужны — функция встроена во фреймворк
-neopixelWrite(RGB_BUILTIN, R, G, B);  // 0-255 per channel / каждый канал
+No libraries needed — built into the framework. Библиотеки не нужны — встроено во фреймворк.
 
-// Examples / Примеры
-neopixelWrite(RGB_BUILTIN, 255, 0,   0);  // red / красный
-neopixelWrite(RGB_BUILTIN, 0,   255, 0);  // green / зелёный
-neopixelWrite(RGB_BUILTIN, 0,   0,   255);// blue / синий
-neopixelWrite(RGB_BUILTIN, 255, 0,   130);// pink / розовый
-neopixelWrite(RGB_BUILTIN, 0,   255, 255);// cyan / циан
-neopixelWrite(RGB_BUILTIN, 255, 200, 0);  // yellow / жёлтый
-neopixelWrite(RGB_BUILTIN, 0,   0,   0);  // off / выкл
+```cpp
+neopixelWrite(RGB_BUILTIN, R, G, B);       // 0-255 per channel / на каждый канал
+
+neopixelWrite(RGB_BUILTIN, 0,   0,   50);  // blue   / синий   = connecting / подключение
+neopixelWrite(RGB_BUILTIN, 0,   50,  0);   // green  / зелёный = ready / готово
+neopixelWrite(RGB_BUILTIN, 50,  0,   0);   // red    / красный = error / ошибка
+neopixelWrite(RGB_BUILTIN, 200, 200, 0);   // yellow / жёлтый  = scanning / сканирование
+neopixelWrite(RGB_BUILTIN, 0,   0,   0);   // off    / выкл
 ```
 
 ---
 
-## 📁 Sketches / Скетчи
+## 🌐 Access Without Serial Monitor / Доступ без Serial Monitor
 
-| Branch / Ветка | Description / Описание | Libraries / Библиотеки |
+### ✅ Method 1 — mDNS (recommended / рекомендуется)
+
+ESP32 announces itself on the network by name. No IP needed. No Serial Monitor needed.
+ESP32 объявляет себя в сети по имени. IP не нужен. Serial Monitor не нужен.
+
+Open in browser / Открой в браузере: `http://esp32.local`
+
+| Platform / Платформа | Status |
+|---|---|
+| Windows 10/11 | ✅ Works / Работает |
+| macOS | ✅ Works / Работает |
+| Android Chrome | ✅ Works / Работает |
+| iOS Safari | ✅ Works / Работает |
+
+### ✅ Method 2 — Static IP / Фиксированный IP
+
+ESP32 always gets the same IP regardless of network. Already configured in `src/main.cpp`.
+ESP32 всегда получает один и тот же IP. Уже настроен в `src/main.cpp`.
+
+Open in browser / Открой в браузере: `http://192.168.1.200`
+
+⚠️ Change gateway IP to match your router / Измени gateway под свой роутер
+
+---
+
+## 🚀 Quick Start / Быстрый старт
+
+```bash
+git clone https://github.com/irreligious86/esp32-hello.git
+git checkout 07-refactor-modules
+```
+
+Open folder in VSCode → PlatformIO pulls dependencies automatically → Upload → open `http://esp32.local` in browser.
+
+Открыть в VSCode → PlatformIO подтянет зависимости → Upload → открыть `http://esp32.local` в браузере.
+
+---
+
+## 📁 Sketch Branches / Ветки со скетчами
+
+| Branch / Ветка | Description / Описание | Libraries |
 |---|---|---|
-| `01-rgb-serial` | RGB control via Serial Monitor commands: red/green/blue/pink/cyan/yellow/off / Управление RGB через Serial Monitor | — |
-| `02-wifi-webserver` | Web server, RGB control from browser with styled UI / Веб-сервер, управление RGB с браузера | WebServer |
-| `03-wifi-network-info` | Network info in browser — IP, MAC, RSSI, channel, uptime, auto-refresh / Информация о сети в браузере | WebServer |
-| `04-network-scanner-email` | LAN device scanner — ping sweep, ARP MAC detection, RGB status indication, Gmail report / Сканер устройств — ping sweep, MAC через ARP, RGB индикация, отчёт на Gmail | ESP32Ping, ESP Mail Client |
+| `01-rgb-serial` | RGB control via Serial Monitor: red/green/blue/pink/cyan/yellow/off | — |
+| `02-wifi-webserver` | Web server, RGB control from browser / Веб-сервер, управление RGB | WebServer |
+| `03-wifi-network-info` | Network info page — IP, MAC, RSSI, channel, uptime / Инфо о сети | WebServer |
+| `04-network-scanner-email` | Ping sweep, ARP MAC, RGB indication, Gmail HTML report | ESP32Ping, ESP Mail Client |
+| `05-advanced-scanner` | HTTP banner, SSH banner, NetBIOS, OS fingerprint | ESP32Ping, ESP Mail Client, ESPmDNS |
+| `06-scanner-radar-ui` | Non-blocking scan, radar animation, live updates every 5 sec | ESP32Ping, ESP Mail Client, ESPmDNS |
+| `07-refactor-modules` | Modular architecture, EEPROM settings, web config page | ESP32Ping, ESP Mail Client, ESPmDNS, EEPROM |
+
+---
+
+## 🏗️ Project Structure (branch 07+) / Структура проекта
+src/
+main.cpp       — setup(), loop(), WiFi init / инициализация WiFi
+scanner.cpp    — ping, ARP, ports, NetBIOS, SSH, HTTP banner
+mailer.cpp     — HTML email report via Gmail / HTML отчёт на Gmail
+webui.cpp      — web interface, settings page, EEPROM / веб интерфейс, настройки
+include/
+config.h       — all constants, credentials, EEPROM addresses / константы, пароли, адреса EEPROM
+scanner.h      — Device struct, extern state, function declarations / структура Device
+mailer.h       — sendReport() declaration
+webui.h        — web functions, loadSettings(), saveSettings()
+
+---
+
+## ⚙️ Web Settings Page / Веб страница настроек
+
+Available at / Доступна по адресу: `http://esp32.local/settings`
+
+Allows changing without reflashing / Позволяет менять без перепрошивки:
+- Wi-Fi SSID and password / SSID и пароль Wi-Fi
+- Gmail App Password / пароль приложения Gmail
+
+Settings saved to EEPROM — survive reboot / Настройки в EEPROM — переживают перезагрузку.
+
+---
+
+## 📡 Scanner Features / Возможности сканера
+
+| Feature / Функция | Description / Описание |
+|---|---|
+| Ping sweep | Scans all 254 addresses in subnet / Сканирует все 254 адреса подсети |
+| ARP MAC lookup | Gets MAC address after ping / Получает MAC после пинга |
+| OUI vendor lookup | Identifies manufacturer from MAC prefix / Определяет производителя по MAC |
+| Port scan | 16 ports: FTP SSH HTTP HTTPS SMB RDP MQTT MySQL Flask RTSP |
+| OS fingerprint | Guesses OS from open ports: Windows / Linux / IoT / Router |
+| HTTP banner | Reads web server header from port 80 / Читает заголовок веб сервера |
+| SSH banner | Reads SSH version string from port 22 / Читает версию SSH |
+| NetBIOS name | Gets Windows computer name via UDP 137 / Имя Windows машины |
+| RGB indication | Blue=connecting Yellow=scanning Green=done Red=error |
+| Radar UI | Animated radar during scan, live table every 5 sec / Радар во время скана |
+| Gmail report | HTML email with full results on scan complete / HTML письмо по завершению |
 
 ---
 
@@ -90,29 +169,33 @@ neopixelWrite(RGB_BUILTIN, 0,   0,   0);  // off / выкл
 
 | Problem / Проблема | Cause / Причина | Solution / Решение |
 |---|---|---|
-| Infinite RTC_SW_SYS_RST | board_build.arduino.memory_type = qio_opi | Remove from platformio.ini |
-| COM port not visible / Порт не виден | Missing driver / Нет драйвера | Install CH341SER.exe |
-| RGB not responding / RGB не реагирует | Hardcoded pin / Хардкод пина | Use RGB_BUILTIN macro |
-| Port busy on upload / Порт занят | Serial Monitor open / Монитор открыт | Close Serial Monitor before Upload |
-| Won't enter bootloader / Не входит в bootloader | — | Hold BOOT → press RST → release BOOT |
-| Starlink AP Isolation | Devices can't see each other / Устройства не видят друг друга | Use ESP32 softAP mode |
-
----
-
-## 🚀 Quick Start / Быстрый старт
-
-```bash
-git clone https://github.com/irreligious86/esp32-s3-devkitc1-sketches.git
-git checkout 01-rgb-serial
-```
-
-Open folder in VSCode → PlatformIO pulls dependencies automatically → Upload.
-Открыть в VSCode → PlatformIO подтянет зависимости → Upload.
+| Infinite RTC_SW_SYS_RST | `qio_opi` in platformio.ini | Remove that line / Удали строку |
+| COM port not visible / Порт не виден | Missing CH340 driver | Install CH341SER.exe |
+| RGB not working | Hardcoded pin / Хардкод пина | Use `RGB_BUILTIN` macro |
+| Port busy on upload | Serial Monitor open / Монитор открыт | Close before Upload |
+| Won't enter bootloader | — | Hold BOOT → press RST → release BOOT |
+| Web UI freezes during scan | Blocking loop / Блокирующий цикл | FreeRTOS task — planned / планируется |
+| Starlink AP Isolation | Devices isolated / Устройства изолированы | Use ESP32 softAP mode |
+| MAC shows N/A | Randomized MAC Android/iOS | Normal / Норма — современные устройства скрывают MAC |
 
 ---
 
 ## 📅 Changelog / История
 
-| Date / Дата | Event / Событие |
-|---|---|
-| 27.04.2026 | Project started — RGB Serial, WiFi WebServer, Network Info, Network Scanner with Gmail / Старт проекта |   
+| Date / Дата | Branch / Ветка | Change / Изменение |
+|---|---|---|
+| 27.04.2026 | 01–04 | RGB Serial, WiFi WebServer, Network Info, Scanner + Gmail |
+| 28.04.2026 | 05–06 | Advanced scanner, radar UI, non-blocking loop |
+| 28.04.2026 | 07 | Modular refactor, EEPROM settings, web config |
+
+---
+
+## 📝 Notes / Заметки
+
+Gmail requires App Password — generate at `myaccount.google.com/apppasswords`. Not your regular Gmail password. Gmail требует пароль приложения — не обычный пароль аккаунта.
+
+Scan of 254 addresses takes 15–20 minutes due to port scanning per host. Сканирование 254 адресов занимает 15–20 минут из-за проверки портов на каждом хосте.
+
+OUI vendor lookup covers 35 common manufacturers — expand `ouiTable[]` in `scanner.cpp` to add more. OUI база покрывает 35 производителей — расширяй `ouiTable[]` в `scanner.cpp`.
+
+All credentials stored in private repository. Все пароли хранятся в приватном репозитории.
