@@ -10,6 +10,35 @@
 WebServer server(80);
 extern String smtpPassword;
 
+// =====================
+// FreeRTOS задачи
+// =====================
+TaskHandle_t webTaskHandle  = NULL;
+TaskHandle_t scanTaskHandle = NULL;
+
+// Задача веб сервера — Core 0
+void webTask(void* param) {
+  for (;;) {
+    server.handleClient();
+    vTaskDelay(1 / portTICK_PERIOD_MS); // уступаем 1мс
+  }
+}
+
+// Задача сканирования — Core 1
+void scanTask(void* param) {
+  for (;;) {
+    if (scanning) {
+      scanStep();
+
+      // Отправляем email когда скан завершён
+      if (!scanning && scanDone) {
+        sendReport();
+      }
+    }
+    vTaskDelay(1 / portTICK_PERIOD_MS);
+  }
+}
+
 void setupWiFi(const String& ssid, const String& pass) {
   neopixelWrite(RGB_BUILTIN, 0, 0, 50);
 
@@ -50,7 +79,6 @@ void setup() {
 
   String wifiSsid, wifiPass;
   loadSettings(wifiSsid, wifiPass, smtpPassword);
-
   setupWiFi(wifiSsid, wifiPass);
 
   if (WiFi.status() == WL_CONNECTED) {
@@ -60,27 +88,45 @@ void setup() {
     setupWebUI(server);
     server.begin();
     Serial.println("Сервер запущен!");
+
+    // Запускаем задачи
+    xTaskCreatePinnedToCore(
+      webTask,        // функция задачи
+      "WebTask",      // имя
+      8192,           // размер стека
+      NULL,           // параметры
+      1,              // приоритет
+      &webTaskHandle, // хендл
+      0               // ядро 0
+    );
+
+    xTaskCreatePinnedToCore(
+      scanTask,
+      "ScanTask",
+      16384,          // сканер требует больше стека
+      NULL,
+      1,
+      &scanTaskHandle,
+      1               // ядро 1
+    );
+
+    Serial.println("FreeRTOS задачи запущены!");
+    Serial.println("Web  → Core 0");
+    Serial.println("Scan → Core 1");
   }
 }
 
 void loop() {
-  server.handleClient();
-
-  if (scanning) {
-    scanStep();
-    if (!scanning && scanDone) {
-      sendReport();
-    }
-    return;
-  }
-
-  static unsigned long lastBlink = 0;
-  static bool blinkState = false;
+  // loop() больше не нужен — всё в задачах
+  // Мигаем красным при потере связи
   if (WiFi.status() != WL_CONNECTED) {
+    static unsigned long lastBlink = 0;
+    static bool blinkState = false;
     if (millis() - lastBlink > 500) {
       lastBlink = millis();
       blinkState = !blinkState;
       neopixelWrite(RGB_BUILTIN, blinkState ? 50 : 0, 0, 0);
     }
   }
+  vTaskDelay(100 / portTICK_PERIOD_MS);
 }
