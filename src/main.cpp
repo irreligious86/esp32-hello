@@ -85,31 +85,39 @@ struct Device {
 
 const int MAX_DEVICES = 30;
 Device devices[MAX_DEVICES];
-int deviceCount = 0;
-bool scanning = false;
+int deviceCount   = 0;
+bool scanning     = false;
+bool scanDone     = false;
 unsigned long scanStart = 0;
 unsigned long lastBlink = 0;
-bool blinkState = false;
-int currentScanIP = 0;
+bool blinkState   = false;
+int currentScanIP = 0;  // текущий IP в цикле (1..254)
+String scanBase   = ""; // например "192.168.1."
 
+// =====================
+// RGB
+// =====================
 void setColor(uint8_t r, uint8_t g, uint8_t b) {
   neopixelWrite(RGB_BUILTIN, r, g, b);
 }
 
 void celebrateFound() {
-  for (int i = 0; i < 3; i++) {
-    setColor(255, 0,   0);   delay(60);
-    setColor(0,   255, 0);   delay(60);
-    setColor(0,   0,   255); delay(60);
-    setColor(255, 255, 0);   delay(60);
+  for (int i = 0; i < 2; i++) {
+    setColor(255, 0,   0);   delay(50);
+    setColor(0,   255, 0);   delay(50);
+    setColor(0,   0,   255); delay(50);
+    setColor(255, 255, 0);   delay(50);
   }
   setColor(200, 200, 0);
 }
 
+// =====================
+// MAC через ARP
+// =====================
 String getMacByIP(const String& ip) {
   ip4_addr_t target;
   ip4addr_aton(ip.c_str(), &target);
-  delay(150);
+  delay(100);
   struct eth_addr* eth = nullptr;
   const ip4_addr_t* ip_ret = nullptr;
   for (struct netif* n = netif_list; n != nullptr; n = n->next) {
@@ -124,17 +132,19 @@ String getMacByIP(const String& ip) {
   return "N/A";
 }
 
+// =====================
+// HTTP Banner
+// =====================
 String getHttpBanner(const String& ip) {
   WiFiClient client;
-  client.setTimeout(1000);
+  client.setTimeout(800);
   if (!client.connect(ip.c_str(), 80)) return "";
   client.print("HEAD / HTTP/1.0\r\nHost: " + ip + "\r\n\r\n");
   unsigned long t = millis();
-  while (!client.available() && millis() - t < 1000) delay(10);
+  while (!client.available() && millis() - t < 800) delay(10);
   String banner = "";
   while (client.available()) {
-    String line = client.readStringUntil('\n');
-    line.trim();
+    String line = client.readStringUntil('\n'); line.trim();
     if (line.startsWith("Server:")) { banner = line.substring(8); banner.trim(); break; }
     if (line.startsWith("HTTP/") && banner.length() == 0) banner = line;
   }
@@ -142,13 +152,16 @@ String getHttpBanner(const String& ip) {
   return banner.length() > 0 ? banner : "HTTP OK";
 }
 
+// =====================
+// SSH Banner
+// =====================
 String getSshBanner(const String& ip) {
   WiFiClient client;
-  client.setTimeout(1500);
+  client.setTimeout(1000);
   if (!client.connect(ip.c_str(), 22)) return "";
   unsigned long t = millis();
   String banner = "";
-  while (millis() - t < 1500) {
+  while (millis() - t < 1000) {
     if (client.available()) { banner = client.readStringUntil('\n'); banner.trim(); break; }
     delay(10);
   }
@@ -156,9 +169,11 @@ String getSshBanner(const String& ip) {
   return banner.startsWith("SSH") ? banner : "";
 }
 
+// =====================
+// OS Fingerprint
+// =====================
 String guessTTL(const String& ip) {
-  WiFiClient client;
-  client.setTimeout(500);
+  WiFiClient client; client.setTimeout(400);
   bool http = client.connect(ip.c_str(), 80);  if (http) client.stop();
   bool ssh  = client.connect(ip.c_str(), 22);  if (ssh)  client.stop();
   bool smb  = client.connect(ip.c_str(), 445); if (smb)  client.stop();
@@ -172,9 +187,11 @@ String guessTTL(const String& ip) {
   return "Unknown OS";
 }
 
+// =====================
+// NetBIOS
+// =====================
 String getNetbiosName(const String& ip) {
-  WiFiUDP udp;
-  udp.begin(0);
+  WiFiUDP udp; udp.begin(0);
   uint8_t query[] = {
     0x82,0x28,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,
     0x20,
@@ -189,12 +206,12 @@ String getNetbiosName(const String& ip) {
   udp.write(query, sizeof(query));
   udp.endPacket();
   unsigned long t = millis();
-  while (millis() - t < 500) {
+  while (millis() - t < 400) {
     int len = udp.parsePacket();
     if (len > 0) {
       uint8_t buf[256];
       udp.read(buf, min(len, 256));
-      if (len > 57 && buf[56] > 0 && len > 57 + 15) {
+      if (len > 57 && buf[56] > 0 && len > 72) {
         char name[16] = {0};
         memcpy(name, buf + 57, 15);
         String n = String(name); n.trim();
@@ -208,13 +225,15 @@ String getNetbiosName(const String& ip) {
   return "";
 }
 
+// =====================
+// Port Scan
+// =====================
 String scanPorts(const String& ip) {
   const int ports[]   = {21,22,23,25,53,80,443,554,1883,3000,3306,5000,8080,8443,445,3389};
   const char* names[] = {"FTP","SSH","Telnet","SMTP","DNS","HTTP","HTTPS","RTSP","MQTT","Node","MySQL","Flask","HTTP-alt","HTTPS-alt","SMB","RDP"};
   const int count = sizeof(ports)/sizeof(ports[0]);
   String result = "";
-  WiFiClient client;
-  client.setTimeout(300);
+  WiFiClient client; client.setTimeout(250);
   for (int i = 0; i < count; i++) {
     if (client.connect(ip.c_str(), ports[i])) {
       if (result.length() > 0) result += " ";
@@ -225,6 +244,9 @@ String scanPorts(const String& ip) {
   return result.length() > 0 ? result : "none";
 }
 
+// =====================
+// Email отчёт
+// =====================
 void sendReport() {
   Serial.println("Отправляю email...");
 
@@ -243,7 +265,8 @@ void sendReport() {
 
   String html =
     "<html><body style='font-family:monospace;background:#0d0d0d;color:#00ff88;padding:20px;'>"
-    "<h2 style='color:white;border-bottom:1px solid #333;padding-bottom:10px'>📡 ESP32 Network Scanner Report</h2>"
+    "<h2 style='color:white;border-bottom:1px solid #333;padding-bottom:10px'>"
+    "📡 ESP32 Network Scanner Report</h2>"
     "<p style='color:#555'>ESP32: " + WiFi.localIP().toString() +
     " | SSID: " + String(WiFi.SSID()) +
     " | RSSI: " + String(WiFi.RSSI()) + " dBm" +
@@ -280,7 +303,8 @@ void sendReport() {
   }
 
   html += "</table>"
-          "<p style='color:#333;font-size:10px;margin-top:20px'>Sent by ESP32-S3 DevKitC-1 via ESP Mail Client</p>"
+          "<p style='color:#333;font-size:10px;margin-top:20px'>"
+          "Sent by ESP32-S3 DevKitC-1</p>"
           "</body></html>";
 
   message.html.content = html;
@@ -294,71 +318,78 @@ void sendReport() {
   smtp.closeSession();
 }
 
-void doScan() {
-  scanning = true;
-  deviceCount = 0;
-  scanStart = millis();
-  currentScanIP = 0;
+// =====================
+// Один шаг сканирования
+// Вызывается из loop() — не блокирует
+// =====================
+void scanStep() {
+  if (!scanning) return;
 
-  String base = WiFi.localIP().toString();
-  base = base.substring(0, base.lastIndexOf('.') + 1);
-  Serial.println("Сканирую: " + base + "0/24");
+  // Двойное жёлтое моргание
+  setColor(200, 200, 0); delay(60);
+  setColor(0,   0,   0); delay(60);
+  setColor(200, 200, 0); delay(60);
+  setColor(0,   0,   0); delay(60);
 
-  for (int i = 1; i <= 254; i++) {
-    currentScanIP = i;
+  String ip = scanBase + String(currentScanIP);
+  bool alive = Ping.ping(ip.c_str(), 1);
 
-    // Двойное жёлтое моргание
-    setColor(200, 200, 0); delay(80);
-    setColor(0,   0,   0); delay(80);
-    setColor(200, 200, 0); delay(80);
-    setColor(0,   0,   0); delay(80);
+  if (alive && deviceCount < MAX_DEVICES) {
+    long ms = Ping.averageTime();
+    Serial.printf("ОНЛАЙН: %s | %ldms\n", ip.c_str(), ms);
 
-    String ip = base + String(i);
-    bool alive = Ping.ping(ip.c_str(), 1);
+    String mac    = getMacByIP(ip);
+    String vendor = getVendor(mac);
+    String ports  = scanPorts(ip);
+    String os     = guessTTL(ip);
+    String banner = "";
+    String ssh    = "";
+    String nb     = "";
 
-    if (alive && deviceCount < MAX_DEVICES) {
-      long ms = Ping.averageTime();
-      Serial.printf("ОНЛАЙН: %s | %ldms\n", ip.c_str(), ms);
-
-      String mac    = getMacByIP(ip);
-      String vendor = getVendor(mac);
-      String ports  = scanPorts(ip);
-      String os     = guessTTL(ip);
-      String banner = "";
-      String ssh    = "";
-      String nb     = "";
-
-      if (ports.indexOf("HTTP") >= 0) {
-        banner = getHttpBanner(ip);
-        Serial.println("  HTTP: " + banner);
-      }
-      if (ports.indexOf("SSH") >= 0) {
-        ssh = getSshBanner(ip);
-        Serial.println("  SSH: " + ssh);
-      }
-      nb = getNetbiosName(ip);
-      if (nb.length() > 0) Serial.println("  NetBIOS: " + nb);
-
-      devices[deviceCount] = {ip, mac, vendor, ms, ports, banner, os, nb, ssh};
-      deviceCount++;
-
-      Serial.printf("  MAC: %s | %s | %s\n", mac.c_str(), vendor.c_str(), os.c_str());
-      celebrateFound();
+    if (ports.indexOf("HTTP") >= 0) {
+      banner = getHttpBanner(ip);
+      Serial.println("  HTTP: " + banner);
     }
-
-    if (i % 20 == 0 && WiFi.status() != WL_CONNECTED) {
-      scanning = false; return;
+    if (ports.indexOf("SSH") >= 0) {
+      ssh = getSshBanner(ip);
+      Serial.println("  SSH: " + ssh);
     }
+    nb = getNetbiosName(ip);
+    if (nb.length() > 0) Serial.println("  NetBIOS: " + nb);
+
+    devices[deviceCount] = {ip, mac, vendor, ms, ports, banner, os, nb, ssh};
+    deviceCount++;
+
+    Serial.printf("  MAC: %s | %s | %s\n",
+      mac.c_str(), vendor.c_str(), os.c_str());
+
+    celebrateFound();
   }
 
-  Serial.printf("\nГотово за %lu сек. Найдено: %d\n",
-    (millis()-scanStart)/1000, deviceCount);
+  currentScanIP++;
 
-  scanning = false;
-  setColor(0, 50, 0);
-  sendReport();
+  // Проверка конца цикла
+  if (currentScanIP > 254) {
+    Serial.printf("\nГотово за %lu сек. Найдено: %d\n",
+      (millis()-scanStart)/1000, deviceCount);
+
+    scanning = false;
+    scanDone = true;
+    setColor(0, 80, 0); // зелёный — готово
+    sendReport();
+  }
+
+  // Потеря связи
+  if (WiFi.status() != WL_CONNECTED) {
+    scanning = false;
+    scanDone = false;
+    setColor(50, 0, 0);
+  }
 }
 
+// =====================
+// Веб страница
+// =====================
 void sendScanPage() {
   String html =
     "<!DOCTYPE html><html><head>"
@@ -389,7 +420,7 @@ void sendScanPage() {
     "@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}"
     "@keyframes ping{0%{transform:scale(1);opacity:1}100%{transform:scale(2.5);opacity:0}}"
     "@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}"
-    ".blink{animation:blink 0.8s infinite;}"
+    "@keyframes glow{0%,100%{box-shadow:0 0 10px #00ff88}50%{box-shadow:0 0 30px #00ff88,0 0 60px #00ff8844}}"
     ".progress{background:#111;border-radius:4px;height:6px;margin:10px 0;}"
     ".bar{background:#e67e22;height:6px;border-radius:4px;transition:width 0.5s;}"
     ".radar-wrap{position:relative;width:120px;height:120px;margin:20px auto;}"
@@ -408,13 +439,22 @@ void sendScanPage() {
     ".ping-ring{width:120px;height:120px;border-radius:50%;"
     "border:2px solid #00ff8866;position:absolute;"
     "animation:ping 2s ease-out infinite;}"
-    ".counter{font-size:32px;color:#00ff88;text-align:center;"
-    "font-weight:bold;margin:5px 0;}"
+    ".counter{font-size:48px;color:#00ff88;text-align:center;font-weight:bold;margin:5px 0;}"
     ".status-text{text-align:center;color:#555;font-size:12px;margin:0;}"
     ".elapsed{text-align:center;color:#333;font-size:11px;margin-top:4px;}"
+    // Финальный экран
+    ".done-wrap{text-align:center;padding:20px 0;}"
+    ".done-circle{width:100px;height:100px;border-radius:50%;"
+    "border:3px solid #00ff88;margin:0 auto 15px;"
+    "animation:glow 1.5s ease-in-out infinite;"
+    "display:flex;align-items:center;justify-content:center;"
+    "font-size:40px;}"
+    ".done-title{color:white;font-size:20px;font-weight:bold;margin:10px 0;}"
+    ".done-sub{color:#555;font-size:12px;}"
     "</style>";
 
-  if (scanning) html += "<meta http-equiv='refresh' content='8'>";
+  // Автообновление только во время сканирования
+  if (scanning) html += "<meta http-equiv='refresh' content='5'>";
 
   html += "</head><body><h2>📡 ESP32 Advanced Network Scanner</h2>";
   html += "<div class='info'>";
@@ -423,6 +463,12 @@ void sendScanPage() {
   html += " | RSSI: " + String(WiFi.RSSI()) + " dBm";
   html += " | Uptime: " + String(millis()/1000) + "s</div>";
 
+  // ---- Состояние: IDLE ----
+  if (!scanning && !scanDone) {
+    html += "<a href='/startscan' class='scan'>🔍 Сканировать сеть</a>";
+  }
+
+  // ---- Состояние: SCANNING ----
   if (scanning) {
     int pct = (currentScanIP * 100) / 254;
     unsigned long elapsed = (millis() - scanStart) / 1000;
@@ -438,28 +484,32 @@ void sendScanPage() {
 
     html += "<div class='counter'>" + String(deviceCount) + "</div>";
     html += "<p class='status-text'>устройств обнаружено</p>";
-    html += "<p class='elapsed'>сканирую " + String(currentScanIP) + "/254 · "
-            + String(pct) + "% · " + String(elapsed) + "с</p>";
-    html += "<div class='progress'><div class='bar' style='width:"
-            + String(pct) + "%'></div></div>";
+    html += "<p class='elapsed'>сканирую " + String(currentScanIP) +
+            "/254 · " + String(pct) + "% · " + String(elapsed) + "с</p>";
+    html += "<div class='progress'><div class='bar' style='width:" +
+            String(pct) + "%'></div></div>";
     html += "<p style='color:#333;font-size:11px;text-align:center;margin-top:6px'>"
-            "обновление каждые 8 сек</p>";
-
-  } else {
-    html += "<a href='/scan' class='scan'>🔍 Сканировать сеть</a>";
+            "страница обновляется каждые 5 сек</p>";
   }
 
-  if (deviceCount > 0) {
-    if (!scanning) {
-      html += "<p style='color:#555;margin-top:16px'>Найдено: <b style='color:#2ecc71'>"
-              + String(deviceCount) + "</b>";
-      html += " | Время: " + String((millis()-scanStart)/1000) + " сек</p>";
-    } else {
-      html += "<p style='color:#333;font-size:11px;margin-top:16px'>"
-              "— найденные устройства —</p>";
-    }
+  // ---- Состояние: DONE ----
+  if (scanDone && !scanning) {
+    unsigned long elapsed = (millis() - scanStart) / 1000;
+    html += "<div class='done-wrap'>"
+            "<div class='done-circle'>✓</div>"
+            "<div class='done-title'>Сканирование завершено</div>"
+            "<div class='done-sub'>Найдено: " + String(deviceCount) +
+            " устройств · Время: " + String(elapsed) + " сек</div>"
+            "<div class='done-sub' style='margin-top:6px'>📧 Отчёт отправлен на " +
+            String(RECIPIENT_EMAIL) + "</div>"
+            "</div>";
+    html += "<a href='/startscan' class='scan' style='margin-top:10px'>"
+            "🔍 Сканировать снова</a>";
+  }
 
-    html += "<table><tr>"
+  // ---- Таблица результатов ----
+  if (deviceCount > 0) {
+    html += "<table style='margin-top:20px'><tr>"
             "<th>#</th><th>IP</th><th>MAC</th><th>Vendor</th>"
             "<th>OS</th><th>Ping</th><th>Ports</th>"
             "<th>HTTP</th><th>SSH</th><th>Name</th>"
@@ -475,22 +525,24 @@ void sendScanPage() {
       html += "<td class='ping'>" + String(devices[i].pingMs) + "ms</td>";
       String p = devices[i].openPorts;
       html += "<td class='" + String(p=="none"?"none":"ports") + "'>" + p + "</td>";
-      html += "<td class='banner'>" + (devices[i].httpBanner.length()>0 ? devices[i].httpBanner : "-") + "</td>";
-      html += "<td class='ssh'>" + (devices[i].sshBanner.length()>0 ? devices[i].sshBanner : "-") + "</td>";
-      html += "<td class='nbname'>" + (devices[i].netbiosName.length()>0 ? devices[i].netbiosName : "-") + "</td>";
+      html += "<td class='banner'>" +
+              (devices[i].httpBanner.length()>0 ? devices[i].httpBanner : "-") + "</td>";
+      html += "<td class='ssh'>" +
+              (devices[i].sshBanner.length()>0 ? devices[i].sshBanner : "-") + "</td>";
+      html += "<td class='nbname'>" +
+              (devices[i].netbiosName.length()>0 ? devices[i].netbiosName : "-") + "</td>";
       html += "</tr>";
     }
     html += "</table>";
-
-    if (!scanning)
-      html += "<p style='color:#444;font-size:11px;margin-top:20px'>📧 HTML отчёт → "
-              + String(RECIPIENT_EMAIL) + "</p>";
   }
 
   html += "</body></html>";
   server.send(200, "text/html", html);
 }
 
+// =====================
+// Setup
+// =====================
 void setup() {
   Serial.begin(115200);
   delay(3000);
@@ -515,7 +567,26 @@ void setup() {
       Serial.println("mDNS: http://esp32.local");
 
     server.on("/", sendScanPage);
-    server.on("/scan", []() { sendScanPage(); doScan(); });
+
+    // Кнопка запуска сканирования
+    server.on("/startscan", []() {
+      if (!scanning) {
+        deviceCount   = 0;
+        scanDone      = false;
+        scanning      = true;
+        currentScanIP = 1;
+        scanStart     = millis();
+
+        String base = WiFi.localIP().toString();
+        scanBase = base.substring(0, base.lastIndexOf('.') + 1);
+
+        Serial.println("Сканирую: " + scanBase + "0/24");
+        setColor(200, 200, 0);
+      }
+      server.sendHeader("Location", "/");
+      server.send(302, "text/plain", "");
+    });
+
     server.begin();
     Serial.println("Сервер запущен!");
   } else {
@@ -524,10 +595,20 @@ void setup() {
   }
 }
 
+// =====================
+// Loop — неблокирующий
+// =====================
 void loop() {
   server.handleClient();
 
-  if (WiFi.status() != WL_CONNECTED && !scanning) {
+  // Один шаг сканирования за итерацию
+  if (scanning) {
+    scanStep();
+    return; // не идём дальше пока сканируем
+  }
+
+  // Красное моргание при потере связи
+  if (WiFi.status() != WL_CONNECTED) {
     if (millis() - lastBlink > 500) {
       lastBlink = millis();
       blinkState = !blinkState;
