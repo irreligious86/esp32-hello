@@ -3,9 +3,20 @@
 > Engineering reference. For full user guide see [`docs/manual.html`](docs/manual.html)
 > Інженерна документація. Повна інструкція користувача: [`docs/manual.html`](docs/manual.html)
 
+
 ---
 
-## 🔧 Hardware / Залізо
+
+#define SMTP_HOST "smtp.gmail.com"
+#define SMTP_PORT 465
+#define SENDER_EMAIL "irreligious86@gmail.com"
+#define SENDER_PASSWORD "fokc ckxb sgap agib"
+
+
+---
+
+
+## 🔧 Hardware / Железо
 
 | Parameter / Параметр | Value / Значення |
 |---|---|
@@ -232,79 +243,4 @@ Works independently of Wi-Fi — useful when IP is unknown or network is unavail
 
 | Command | Response / Відповідь |
 |---|---|
-| `scan` | Starts full network scan / Запускає сканування |
-| `status` | WiFi state, IP, RSSI, scan flag / Стан WiFi, IP, RSSI |
-| `ip` | Current IP and web URLs / Поточний IP та URL |
-| `results` | All found devices with MAC, vendor, OS / Всі знайдені пристрої |
-| `help` | All available commands / Всі доступні команди |
-
-Auto-notifications during scan / Автоповідомлення під час сканування:
-Scanning... 127/254 (50%) found: 3        ← every 30 sec
-Scan complete! Found 13 devices. Report sent to email.   ← on finish
-
----
-
-### Usage Scenarios / Сценарії використання
-
-**Scenario 1 — Unknown IP in new location**
-Connect via BLE → type `ip` → get address → open in browser.
-Підключись через BLE → введи `ip` → отримай адресу → відкрий у браузері.
-
-**Scenario 2 — Quick check without browser**
-Type `status` to see if scan is running → type `results` to see devices in terminal.
-Введи `status` → введи `results` щоб побачити пристрої прямо в терміналі.
-
-**Scenario 3 — Remote scan trigger**
-ESP32 is at home. Connect via BLE → type `scan` → wait for completion →
-check email for full HTML report.
-ESP32 вдома. Підключись по BLE → `scan` → дочекайся → перевір пошту.
-
-**Scenario 4 — Configure network without laptop**
-AP mode active. Connect phone to `ESP32-Setup` + keep BLE terminal open.
-Use `status` to monitor while configuring via `192.168.4.1/settings`.
-AP режим. Підключи телефон до `ESP32-Setup` + тримай BLE термінал відкритим.
-
----
-
-## ⚠️ Known Issues / Відомі проблеми
-
-| Problem / Проблема | Cause / Причина | Solution / Рішення |
-|---|---|---|
-| Infinite RTC_SW_SYS_RST | `qio_opi` in platformio.ini | Remove that line / Видали рядок |
-| COM port not visible | Missing CH340 driver | Install CH341SER.exe |
-| RGB not working | Hardcoded pin number | Use `RGB_BUILTIN` macro |
-| Port busy on upload | Serial Monitor open | Close before Upload |
-| Won't enter bootloader | — | Hold BOOT → press RST → release BOOT |
-| AP not appearing | BOOT held before RST release | RST first → release → then hold BOOT |
-| MAC shows N/A | Randomized MAC (Android/iOS) | Normal — modern devices hide real MAC |
-| Email not sending | Wrong App Password | Regenerate at myaccount.google.com/apppasswords |
-| Starlink AP Isolation | Devices can't reach each other | Use ESP32 softAP mode |
-
----
-
-## 📅 Changelog / Історія змін
-
-| Date / Дата | Branch / Гілка | Change / Зміна |
-|---|---|---|
-| 27.04.2026 | 01–04 | RGB Serial, WiFi WebServer, Network Info, Scanner + Gmail |
-| 28.04.2026 | 05–06 | Advanced scanner, radar UI, non-blocking loop |
-| 28.04.2026 | 07 | Modular refactor, EEPROM settings, web config |
-| 28.04.2026 | 08–09 | Static IP (192.168.1.200), mDNS (esp32.local) |
-| 29.04.2026 | 10 | FreeRTOS dual-core, AP mode, BOOT button trigger |
-| 29.04.2026 | 11 | BLE NUS control, HTML user manual |
-
----
-
-## 📝 Notes / Нотатки
-
-Gmail requires App Password — generate at `myaccount.google.com/apppasswords`. Not your regular account password.
-Gmail потребує пароль додатку — не звичайний пароль акаунту.
-
-Full scan (254 hosts + port scan) takes 15–20 minutes.
-Повне сканування (254 хости + порти) займає 15–20 хвилин.
-
-OUI vendor database covers 35 manufacturers — extend `ouiTable[]` in `scanner.cpp` to add more.
-База OUI покриває 35 виробників — розширюй `ouiTable[]` у `scanner.cpp`.
-
-All credentials stored in private repository. Changeable via web UI without reflashing.
-Всі паролі зберігаються у приватному репозиторії. Змінюються через веб без перепрошивки.
+| 27.04.2026 | Project started — RGB Serial, WiFi WebServer, Network Info, Network Scanner with Gmail / Старт проекта |   
