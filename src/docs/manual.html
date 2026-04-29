@@ -587,9 +587,39 @@
     .hero, .section { padding: 40px 24px; }
     .footer { padding: 30px 24px; }
   }
+
+  /* Back to scanner — floating fixed-position link */
+  .back-to-scanner {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 1001;
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--green);
+    border: 1px solid var(--green-dim);
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    transition: all 0.2s ease;
+  }
+  .back-to-scanner:hover {
+    background: var(--green);
+    color: var(--bg);
+    border-color: var(--green);
+  }
+  @media (max-width: 900px) {
+    .back-to-scanner { top: 12px; right: 12px; padding: 6px 12px; font-size: 12px; }
+  }
 </style>
 </head>
 <body>
+
+<a href="/" class="back-to-scanner" title="Back to Scanner">← Scanner</a>
 
 <!-- Sidebar -->
 <nav class="sidebar">

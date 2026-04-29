@@ -7,6 +7,11 @@
 
 extern String smtpPassword;
 
+// HTML мануал, встроенный в прошивку через board_build.embed_files
+// Символы создаются линкером из файла src/docs/manual.html
+extern const uint8_t manualHtmlStart[] asm("_binary_src_docs_manual_html_start");
+extern const uint8_t manualHtmlEnd[]   asm("_binary_src_docs_manual_html_end");
+
 void saveSettings(const String& ssid, const String& pass, const String& smtpPass) {
   EEPROM.begin(EEPROM_SIZE);
   for (int i = 0; i < EEPROM_SIZE; i++) EEPROM.write(i, 0);
@@ -100,6 +105,10 @@ void sendScanPage(WebServer& server) {
     "display:flex;align-items:center;justify-content:center;font-size:40px;}"
     ".done-title{color:white;font-size:20px;font-weight:bold;margin:10px 0;}"
     ".done-sub{color:#777;font-size:13px;}"
+    ".manual-foot{text-align:center;margin-top:30px;padding:14px 0 4px;border-top:1px solid #1a1a1a;}"
+    ".manual-foot a{color:#444;background:transparent;font-size:11px;font-weight:normal;"
+    "text-decoration:underline;padding:0;margin:0;letter-spacing:1px;}"
+    ".manual-foot a:hover{color:#777;}"
     "</style>";
 
   if (scanning) html += "<meta http-equiv='refresh' content='5'>";
@@ -174,6 +183,8 @@ void sendScanPage(WebServer& server) {
     html += "</table>";
   }
 
+  html += "<div class='manual-foot'><a href='/manual'>📖 user manual</a></div>";
+
   html += "</body></html>";
   server.send(200, "text/html", html);
 }
@@ -244,6 +255,12 @@ void setupWebUI(WebServer& server) {
 
   server.on("/settings", [&server]() {
     sendSettingsPage(server);
+  });
+
+  server.on("/manual", [&server]() {
+    size_t len = manualHtmlEnd - manualHtmlStart;
+    server.sendHeader("Cache-Control", "public, max-age=86400");
+    server.send_P(200, "text/html", (PGM_P)manualHtmlStart, len);
   });
 
   server.on("/savesettings", HTTP_POST, [&server]() {
