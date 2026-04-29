@@ -58,7 +58,7 @@ void sendScanPage(WebServer& server) {
     "<style>"
     "body{font-family:monospace;padding:20px;background:#0d0d0d;color:#00ff88;margin:0;}"
     "h2{color:white;border-bottom:1px solid #222;padding-bottom:10px;}"
-    ".info{color:#555;font-size:12px;margin-bottom:15px;}"
+    ".info{color:#777;font-size:13px;margin-bottom:15px;}"
     "table{width:100%;border-collapse:collapse;margin-top:16px;font-size:11px;}"
     "td,th{padding:7px 8px;border-bottom:1px solid #1a1a1a;text-align:left;vertical-align:top;}"
     "th{color:#444;font-size:10px;text-transform:uppercase;letter-spacing:1px;}"
@@ -92,14 +92,14 @@ void sendScanPage(WebServer& server) {
     ".radar-dot{width:6px;height:6px;border-radius:50%;background:#00ff88;position:absolute;top:57px;left:57px;}"
     ".ping-ring{width:120px;height:120px;border-radius:50%;border:2px solid #00ff8866;position:absolute;animation:ping 2s ease-out infinite;}"
     ".counter{font-size:48px;color:#00ff88;text-align:center;font-weight:bold;margin:5px 0;}"
-    ".status-text{text-align:center;color:#555;font-size:12px;margin:0;}"
-    ".elapsed{text-align:center;color:#333;font-size:11px;margin-top:4px;}"
+    ".status-text{text-align:center;color:#777;font-size:13px;margin:0;}"
+    ".elapsed{text-align:center;color:#666;font-size:12px;margin-top:4px;}"
     ".done-wrap{text-align:center;padding:20px 0;}"
     ".done-circle{width:100px;height:100px;border-radius:50%;border:3px solid #00ff88;"
     "margin:0 auto 15px;animation:glow 1.5s ease-in-out infinite;"
     "display:flex;align-items:center;justify-content:center;font-size:40px;}"
     ".done-title{color:white;font-size:20px;font-weight:bold;margin:10px 0;}"
-    ".done-sub{color:#555;font-size:12px;}"
+    ".done-sub{color:#777;font-size:13px;}"
     "</style>";
 
   if (scanning) html += "<meta http-equiv='refresh' content='5'>";
@@ -113,7 +113,7 @@ void sendScanPage(WebServer& server) {
   html += " | Uptime: " + String(millis()/1000) + "s";
   html += " | FW: " FIRMWARE_VERSION "</div>";
 
-  if (!scanning) {
+  if (!scanning && !scanDone) {
     html += "<a href='/startscan' class='scan'>🔍 Scan Network</a>";
     html += "<a href='/settings' class='settings'>⚙️ Settings</a>";
   }
@@ -135,7 +135,7 @@ void sendScanPage(WebServer& server) {
             "/254 · " + String(pct) + "% · " + String(elapsed) + "s</p>";
     html += "<div class='progress'><div class='bar' style='width:" +
             String(pct) + "%'></div></div>";
-    html += "<p style='color:#333;font-size:11px;text-align:center'>auto-refresh every 5 sec</p>";
+    html += "<p style='color:#666;font-size:12px;text-align:center'>auto-refresh every 5 sec</p>";
   }
 
   if (scanDone && !scanning) {
@@ -191,7 +191,7 @@ void sendSettingsPage(WebServer& server) {
     "h2{color:white;border-bottom:1px solid #222;padding-bottom:10px;}"
     "h3{color:#aaa;font-size:14px;margin-top:24px;margin-bottom:10px;}"
     ".group{background:#111;border-radius:8px;padding:16px;margin-bottom:16px;}"
-    "label{display:block;color:#555;font-size:11px;margin-bottom:4px;margin-top:12px;}"
+    "label{display:block;color:#888;font-size:12px;margin-bottom:4px;margin-top:12px;}"
     "input{width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;"
     "border-radius:4px;color:#00ff88;font-family:monospace;font-size:13px;"
     "box-sizing:border-box;}"
@@ -201,8 +201,8 @@ void sendSettingsPage(WebServer& server) {
     "font-weight:bold;color:white;}"
     ".save{background:#27ae60;}"
     ".back{background:#2c3e50;}"
-    ".warn{color:#e74c3c;font-size:11px;margin-top:8px;}"
-    ".tip{color:#333;font-size:11px;margin-top:6px;}"
+    ".warn{color:#e74c3c;font-size:13px;margin-top:8px;}"
+    ".tip{color:#888;font-size:13px;margin-top:6px;}"
     "a{color:#555;text-decoration:none;}"
     "</style></head><body>"
     "<h2>⚙️ ESP32 Settings</h2>"
@@ -260,9 +260,9 @@ void setupWebUI(WebServer& server) {
       "<html><body style='font-family:monospace;background:#0d0d0d;"
       "color:#00ff88;padding:40px;text-align:center'>"
       "<h2 style='color:white'>✓ Saved</h2>"
-      "<p style='color:#555'>Rebooting and connecting to: <b style='color:#00ff88'>"
+      "<p style='color:#888;font-size:14px'>Rebooting and connecting to: <b style='color:#00ff88'>"
       + newSsid + "</b></p>"
-      "<p style='color:#333;font-size:12px'>Page will refresh in 8 seconds</p>"
+      "<p style='color:#666;font-size:13px'>Page will refresh in 8 seconds</p>"
       "<meta http-equiv='refresh' content='8;url=/'>"
       "</body></html>");
 

@@ -230,14 +230,13 @@ void setup() {
   Serial.println("Hold BOOT 3 sec for AP mode...");
   neopixelWrite(RGB_BUILTIN, 100, 100, 100);
 
-  bool forceAP = false;
+  bool forceAP = true;
   unsigned long holdStart = millis();
   while (millis() - holdStart < 3000) {
     if (digitalRead(BOOT_BUTTON) == HIGH) {
       forceAP = false;
       break;
     }
-    forceAP = true;
     delay(50);
   }
 

@@ -15,7 +15,7 @@ bool   scanning      = false;
 bool   scanDone      = false;
 unsigned long scanStart = 0;
 int    currentScanIP = 0;
-String scanBase      = "";
+static String scanBase = "";
 
 // =====================
 // OUI база
@@ -59,7 +59,7 @@ const OUI ouiTable[] = {
   {"",         "Unknown"}
 };
 
-String getVendor(const String& mac) {
+static String getVendor(const String& mac) {
   String prefix = mac.substring(0, 8);
   prefix.toUpperCase();
   for (int i = 0; i < (int)(sizeof(ouiTable)/sizeof(ouiTable[0])) - 1; i++) {
@@ -68,7 +68,7 @@ String getVendor(const String& mac) {
   return "Unknown";
 }
 
-String getMacByIP(const String& ip) {
+static String getMacByIP(const String& ip) {
   ip4_addr_t target;
   ip4addr_aton(ip.c_str(), &target);
   delay(100);
@@ -86,7 +86,7 @@ String getMacByIP(const String& ip) {
   return "N/A";
 }
 
-String getHttpBanner(const String& ip) {
+static String getHttpBanner(const String& ip) {
   WiFiClient client; client.setTimeout(800);
   if (!client.connect(ip.c_str(), 80)) return "";
   client.print("HEAD / HTTP/1.0\r\nHost: " + ip + "\r\n\r\n");
@@ -102,7 +102,7 @@ String getHttpBanner(const String& ip) {
   return banner.length() > 0 ? banner : "HTTP OK";
 }
 
-String getSshBanner(const String& ip) {
+static String getSshBanner(const String& ip) {
   WiFiClient client; client.setTimeout(1000);
   if (!client.connect(ip.c_str(), 22)) return "";
   unsigned long t = millis();
@@ -115,7 +115,7 @@ String getSshBanner(const String& ip) {
   return banner.startsWith("SSH") ? banner : "";
 }
 
-String guessTTL(const String& ip) {
+static String guessTTL(const String& ip) {
   WiFiClient client; client.setTimeout(400);
   bool http = client.connect(ip.c_str(), 80);  if (http) client.stop();
   bool ssh  = client.connect(ip.c_str(), 22);  if (ssh)  client.stop();
@@ -130,7 +130,7 @@ String guessTTL(const String& ip) {
   return "Unknown OS";
 }
 
-String getNetbiosName(const String& ip) {
+static String getNetbiosName(const String& ip) {
   WiFiUDP udp; udp.begin(0);
   uint8_t query[] = {
     0x82,0x28,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -165,7 +165,7 @@ String getNetbiosName(const String& ip) {
   return "";
 }
 
-String scanPorts(const String& ip) {
+static String scanPorts(const String& ip) {
   const int ports[]   = {21,22,23,25,53,80,443,554,1883,3000,3306,5000,8080,8443,445,3389};
   const char* names[] = {"FTP","SSH","Telnet","SMTP","DNS","HTTP","HTTPS","RTSP",
                          "MQTT","Node","MySQL","Flask","HTTP-alt","HTTPS-alt","SMB","RDP"};
@@ -196,8 +196,6 @@ void startScan() {
 void scanStep() {
   if (!scanning) return;
 
-  neopixelWrite(RGB_BUILTIN, 200, 200, 0); delay(60);
-  neopixelWrite(RGB_BUILTIN, 0,   0,   0); delay(60);
   neopixelWrite(RGB_BUILTIN, 200, 200, 0); delay(60);
   neopixelWrite(RGB_BUILTIN, 0,   0,   0); delay(60);
 

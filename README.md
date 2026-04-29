@@ -1,31 +1,30 @@
-# ESP32-S3 DevKitC-1 — Network Scanner & Sketches / Сетевой сканер и скетчи
+# ESP32-S3 DevKitC-1 — Advanced Network Scanner
 
-A collection of working sketches for ESP32-S3 DevKitC-1 (N16R8). Each sketch is in a separate branch. The most advanced one is the network scanner with web UI, Gmail reports, and EEPROM settings.
-
-Коллекция рабочих скетчей для ESP32-S3 DevKitC-1 (N16R8). Каждый скетч в отдельной ветке. Самый продвинутый — сетевой сканер с веб интерфейсом, отчётами на Gmail и настройками в EEPROM.
+> Engineering reference. For full user guide see [`docs/manual.html`](docs/manual.html)
+> Інженерна документація. Повна інструкція користувача: [`docs/manual.html`](docs/manual.html)
 
 ---
 
-## 🔧 Hardware / Железо
+## 🔧 Hardware / Залізо
 
-| Parameter / Параметр | Value / Значение |
+| Parameter / Параметр | Value / Значення |
 |---|---|
 | Board / Плата | ESP32-S3-DevKitC-1 |
-| Chip / Чип | ESP32-S3 (QFN56), revision v0.2 |
-| Cores / Ядра | 2x Xtensa LX7, 240 MHz |
+| Chip / Чіп | ESP32-S3 (QFN56), revision v0.2 |
+| Cores / Ядра | 2× Xtensa LX7, 240 MHz |
 | RAM | 512KB SRAM + 8MB PSRAM (Embedded, AP_3v3) |
 | Flash | 16MB (QD) |
 | Wi-Fi | 802.11 b/g/n, 2.4GHz |
 | Bluetooth | BLE 5.0 |
-| USB | 2x Type-C — UART (CH343) + native USB-OTG |
+| USB | 2× Type-C — UART (CH343) + native USB-OTG |
 | RGB LED | WS2812B — `neopixelWrite(RGB_BUILTIN, R, G, B)` |
 | MAC | D8:3B:DA:A4:CC:08 |
 
 ---
 
-## ⚙️ Development Environment / Окружение разработки
+## ⚙️ Development Environment / Середовище розробки
 
-| Tool / Инструмент | Version / Версия |
+| Tool / Інструмент | Version / Версія |
 |---|---|
 | IDE | VSCode + PlatformIO |
 | Platform | espressif32 @ 6.13.0 |
@@ -36,7 +35,7 @@ A collection of working sketches for ESP32-S3 DevKitC-1 (N16R8). Each sketch is 
 
 ---
 
-## 📋 platformio.ini — minimal working config / рабочий минимум
+## 📋 platformio.ini — minimal working config / мінімальний робочий конфіг
 
 ```ini
 [env:esp32-s3]
@@ -45,333 +44,267 @@ board = esp32-s3-devkitc-1
 framework = arduino
 monitor_speed = 115200
 upload_speed = 921600
+
+lib_deps =
+    marian-craciunescu/ESP32Ping @ ^1.7
+    mobizt/ESP Mail Client @ ^3.4.19
+    EEPROM
 ```
 
-⚠️ NEVER add / НИКОГДА не добавлять: `board_build.arduino.memory_type = qio_opi` — causes infinite crash-loop RTC_SW_SYS_RST / вызывает бесконечный крэш-луп
+> ⚠️ NEVER add / НІКОЛИ не додавати: `board_build.arduino.memory_type = qio_opi`
+> Causes infinite crash-loop RTC_SW_SYS_RST / Викликає нескінченний креш-луп
 
 ---
 
-## 💡 Built-in RGB LED / Встроенный RGB светодиод
+## 💡 Built-in RGB LED / Вбудований RGB світлодіод
 
-No libraries needed — built into the framework. Библиотеки не нужны — встроено во фреймворк.
+No libraries needed — built into the framework.
+Бібліотеки не потрібні — вбудовано у фреймворк.
 
 ```cpp
-neopixelWrite(RGB_BUILTIN, R, G, B);       // 0-255 per channel / на каждый канал
+neopixelWrite(RGB_BUILTIN, R, G, B);         // 0-255 per channel / на кожен канал
 
-neopixelWrite(RGB_BUILTIN, 0,   0,   50);  // blue   / синий   = connecting / подключение
-neopixelWrite(RGB_BUILTIN, 0,   50,  0);   // green  / зелёный = ready / готово
-neopixelWrite(RGB_BUILTIN, 50,  0,   0);   // red    / красный = error / ошибка
-neopixelWrite(RGB_BUILTIN, 200, 200, 0);   // yellow / жёлтый  = scanning / сканирование
-neopixelWrite(RGB_BUILTIN, 0,   0,   0);   // off    / выкл
+neopixelWrite(RGB_BUILTIN, 100, 100, 100);   // ⬜ WHITE  — boot window (3s)
+neopixelWrite(RGB_BUILTIN, 0,   0,   50);    // 🔵 BLUE   — connecting to WiFi
+neopixelWrite(RGB_BUILTIN, 0,   50,  0);     // 🟢 GREEN  — ready
+neopixelWrite(RGB_BUILTIN, 255, 100, 0);     // 🟠 ORANGE — AP mode active
+neopixelWrite(RGB_BUILTIN, 200, 200, 0);     // 🟡 YELLOW — scanning (double blink)
+// rainbow flash                             // 🌈 RAINBOW — device found
+neopixelWrite(RGB_BUILTIN, 50,  0,   0);     // 🔴 RED    — WiFi lost (blink)
+neopixelWrite(RGB_BUILTIN, 0,   0,   0);     // ⚫ OFF
 ```
 
 ---
 
-## 🌐 Access Without Serial Monitor / Доступ без Serial Monitor
-
-### ✅ Method 1 — mDNS (recommended / рекомендуется)
-
-ESP32 announces itself on the network by name. No IP needed. No Serial Monitor needed.
-ESP32 объявляет себя в сети по имени. IP не нужен. Serial Monitor не нужен.
-
-Open in browser / Открой в браузере: `http://esp32.local`
-
-| Platform / Платформа | Status |
-|---|---|
-| Windows 10/11 | ✅ Works / Работает |
-| macOS | ✅ Works / Работает |
-| Android Chrome | ✅ Works / Работает |
-| iOS Safari | ✅ Works / Работает |
-
-### ✅ Method 2 — Static IP / Фиксированный IP
-
-ESP32 always gets the same IP regardless of network. Already configured in `src/main.cpp`.
-ESP32 всегда получает один и тот же IP. Уже настроен в `src/main.cpp`.
-
-Open in browser / Открой в браузере: `http://192.168.1.200`
-
-⚠️ Change gateway IP to match your router / Измени gateway под свой роутер
-
----
-
-## 🚀 Quick Start / Быстрый старт
+## 🚀 Quick Start / Швидкий старт
 
 ```bash
 git clone https://github.com/irreligious86/esp32-hello.git
-git checkout 07-refactor-modules
+git checkout 11-bluetooth
 ```
 
-Open folder in VSCode → PlatformIO pulls dependencies automatically → Upload → open `http://esp32.local` in browser.
+Open in VSCode → PlatformIO pulls dependencies automatically → Upload.
+Відкрити у VSCode → PlatformIO підтягне залежності → Upload.
 
-Открыть в VSCode → PlatformIO подтянет зависимости → Upload → открыть `http://esp32.local` в браузере.
+After flashing open in browser / Після прошивки відкрий у браузері:
+http://esp32.local
+http://192.168.1.200
 
 ---
 
-## 📁 Sketch Branches / Ветки со скетчами
+## 📁 Sketch Branches / Гілки зі скетчами
 
-| Branch / Ветка | Description / Описание | Libraries |
+| Branch / Гілка | Description / Опис | Libraries |
 |---|---|---|
-| `01-rgb-serial` | RGB control via Serial Monitor: red/green/blue/pink/cyan/yellow/off | — |
-| `02-wifi-webserver` | Web server, RGB control from browser / Веб-сервер, управление RGB | WebServer |
-| `03-wifi-network-info` | Network info page — IP, MAC, RSSI, channel, uptime / Инфо о сети | WebServer |
+| `01-rgb-serial` | RGB control via Serial Monitor commands: red/green/blue/pink/cyan/yellow/off | — |
+| `02-wifi-webserver` | Web server, RGB control from browser | WebServer |
+| `03-wifi-network-info` | Network info page — IP, MAC, RSSI, channel, uptime | WebServer |
 | `04-network-scanner-email` | Ping sweep, ARP MAC, RGB indication, Gmail HTML report | ESP32Ping, ESP Mail Client |
 | `05-advanced-scanner` | HTTP banner, SSH banner, NetBIOS, OS fingerprint | ESP32Ping, ESP Mail Client, ESPmDNS |
-| `06-scanner-radar-ui` | Non-blocking scan, radar animation, live updates every 5 sec | ESP32Ping, ESP Mail Client, ESPmDNS |
+| `06-scanner-radar-ui` | Non-blocking scan, radar animation, live updates | ESP32Ping, ESP Mail Client, ESPmDNS |
 | `07-refactor-modules` | Modular architecture, EEPROM settings, web config page | ESP32Ping, ESP Mail Client, ESPmDNS, EEPROM |
+| `08-docs-and-static-ip` | Static IP, mDNS, bilingual README | — |
+| `09-static-ip-freertos-bt` | Static IP confirmed working | — |
+| `10-freertos` | FreeRTOS dual-core, AP mode, BOOT button trigger | — |
+| `11-bluetooth` | BLE NUS control, HTML user manual ← **latest** | BLEDevice |
 
 ---
 
-## 🏗️ Project Structure (branch 07+) / Структура проекта
+## 🏗️ Project Structure (branch 11) / Структура проекту
 src/
-main.cpp       — setup(), loop(), WiFi init / инициализация WiFi
-scanner.cpp    — ping, ARP, ports, NetBIOS, SSH, HTTP banner
-mailer.cpp     — HTML email report via Gmail / HTML отчёт на Gmail
-webui.cpp      — web interface, settings page, EEPROM / веб интерфейс, настройки
+main.cpp      — setup(), loop(), WiFi, AP mode, BOOT button, FreeRTOS tasks, BLE
+scanner.cpp   — ping, ARP, OUI lookup, port scan, OS fingerprint, HTTP/SSH banner, NetBIOS
+mailer.cpp    — HTML email report via Gmail SMTP
+webui.cpp     — web UI, settings page, EEPROM read/write
 include/
-config.h       — all constants, credentials, EEPROM addresses / константы, пароли, адреса EEPROM
-scanner.h      — Device struct, extern state, function declarations / структура Device
-mailer.h       — sendReport() declaration
-webui.h        — web functions, loadSettings(), saveSettings()
+config.h      — all constants, EEPROM addresses, BLE UUIDs, credentials
+scanner.h     — Device struct, extern state variables, function declarations
+mailer.h      — sendReport() declaration
+webui.h       — setupWebUI(), loadSettings(), saveSettings() declarations
+docs/
+manual.html   — full styled user manual (EN)
 
 ---
 
-## ⚙️ Web Settings Page / Веб страница настроек
+## ⚙️ Architecture / Архітектура
+Core 0 (FreeRTOS)              Core 1 (FreeRTOS)
+──────────────────             ──────────────────
+webTask()                      scanTask()
+server.handleClient()          scanStep() × 254
+→ instant response             → ping + ports + banners
+even during scan               → sendReport() on complete
 
-Available at / Доступна по адресу: `http://esp32.local/settings`
-
-Allows changing without reflashing / Позволяет менять без перепрошивки:
-- Wi-Fi SSID and password / SSID и пароль Wi-Fi
-- Gmail App Password / пароль приложения Gmail
-
-Settings saved to EEPROM — survive reboot / Настройки в EEPROM — переживают перезагрузку.
+Shared state / Спільний стан: `scanning`, `scanDone`, `deviceCount`, `currentScanIP`, `devices[]`
 
 ---
 
-## 📡 Scanner Features / Возможности сканера
+## 📡 Scanner Features / Можливості сканера
 
-| Feature / Функция | Description / Описание |
+| Feature / Функція | Description / Опис |
 |---|---|
-| Ping sweep | Scans all 254 addresses in subnet / Сканирует все 254 адреса подсети |
-| ARP MAC lookup | Gets MAC address after ping / Получает MAC после пинга |
-| OUI vendor lookup | Identifies manufacturer from MAC prefix / Определяет производителя по MAC |
-| Port scan | 16 ports: FTP SSH HTTP HTTPS SMB RDP MQTT MySQL Flask RTSP |
+| Ping sweep | Scans all 254 addresses in subnet / Сканує всі 254 адреси підмережі |
+| ARP MAC lookup | Gets MAC address after ping / Отримує MAC після пінгу |
+| OUI vendor lookup | Identifies manufacturer from MAC prefix (35 vendors) / Визначає виробника |
+| Port scan | 16 ports: FTP SSH HTTP HTTPS SMB RDP MQTT MySQL Flask RTSP DNS Telnet |
 | OS fingerprint | Guesses OS from open ports: Windows / Linux / IoT / Router |
-| HTTP banner | Reads web server header from port 80 / Читает заголовок веб сервера |
-| SSH banner | Reads SSH version string from port 22 / Читает версию SSH |
-| NetBIOS name | Gets Windows computer name via UDP 137 / Имя Windows машины |
-| RGB indication | Blue=connecting Yellow=scanning Green=done Red=error |
-| Radar UI | Animated radar during scan, live table every 5 sec / Радар во время скана |
-| Gmail report | HTML email with full results on scan complete / HTML письмо по завершению |
+| HTTP banner | Reads web server header from port 80 / Читає заголовок веб-сервера |
+| SSH banner | Reads SSH version string from port 22 / Читає версію SSH |
+| NetBIOS name | Gets Windows computer name via UDP 137 / Ім'я Windows машини |
+| Radar UI | Animated radar, live table auto-refresh every 5 sec / Радар, живі оновлення |
+| Gmail report | Styled HTML email sent automatically on scan complete |
 
 ---
 
-## ⚠️ Known Issues / Известные грабли
+## 🌐 Web Access & Settings / Веб-доступ та налаштування
 
-| Problem / Проблема | Cause / Причина | Solution / Решение |
-|---|---|---|
-| Infinite RTC_SW_SYS_RST | `qio_opi` in platformio.ini | Remove that line / Удали строку |
-| COM port not visible / Порт не виден | Missing CH340 driver | Install CH341SER.exe |
-| RGB not working | Hardcoded pin / Хардкод пина | Use `RGB_BUILTIN` macro |
-| Port busy on upload | Serial Monitor open / Монитор открыт | Close before Upload |
-| Won't enter bootloader | — | Hold BOOT → press RST → release BOOT |
-| Web UI freezes during scan | Blocking loop / Блокирующий цикл | FreeRTOS task — planned / планируется |
-| Starlink AP Isolation | Devices isolated / Устройства изолированы | Use ESP32 softAP mode |
-| MAC shows N/A | Randomized MAC Android/iOS | Normal / Норма — современные устройства скрывают MAC |
-
----
-
-## 📅 Changelog / История
-
-| Date / Дата | Branch / Ветка | Change / Изменение |
-|---|---|---|
-| 27.04.2026 | 01–04 | RGB Serial, WiFi WebServer, Network Info, Scanner + Gmail |
-| 28.04.2026 | 05–06 | Advanced scanner, radar UI, non-blocking loop |
-| 28.04.2026 | 07 | Modular refactor, EEPROM settings, web config |
-
----
-
-## 📝 Notes / Заметки
-
-Gmail requires App Password — generate at `myaccount.google.com/apppasswords`. Not your regular Gmail password. Gmail требует пароль приложения — не обычный пароль аккаунта.
-
-Scan of 254 addresses takes 15–20 minutes due to port scanning per host. Сканирование 254 адресов занимает 15–20 минут из-за проверки портов на каждом хосте.
-
-OUI vendor lookup covers 35 common manufacturers — expand `ouiTable[]` in `scanner.cpp` to add more. OUI база покрывает 35 производителей — расширяй `ouiTable[]` в `scanner.cpp`.
-
-All credentials stored in private repository. Все пароли хранятся в приватном репозитории.
-
-
----
-
-## 🔌 Network Setup & Switching / Настройка сети и переключение
-
-### Normal boot / Обычный запуск
-
-Just power on or press RST. ESP32 connects to the saved network automatically.
-Просто включи питание или нажми RST. ESP32 подключится к сохранённой сети автоматически.
-
-RGB indicator / RGB индикатор:
-- 🔵 Blue — connecting / подключается
-- 🟢 Green — connected, ready / подключено, готово
-- 🔴 Red blinking — no network / нет сети
-- 🟠 Orange — AP mode active / режим точки доступа
-
----
-
-### Access web interface / Доступ к веб интерфейсу
-
-When connected to your network / Когда подключён к вашей сети:
-http://esp32.local        ← works on all platforms / работает везде
-http://192.168.1.200      ← fixed IP, always the same / фиксированный IP
-
-Settings page / Страница настроек:
-http://esp32.local/settings
-http://192.168.1.200/settings
-
----
-
-### Switch to a new network / Переключение на другую сеть
-
-**Without a laptop — from phone only / Без ноутбука — только с телефона:**
-
-**Step 1** — Press RST to reboot / Нажми RST для перезагрузки
-
-**Step 2** — Immediately hold BOOT button for 3 seconds / Сразу зажми BOOT на 3 секунды
-- RGB turns white during wait / RGB белый пока ждёт
-- RGB turns orange when AP is ready / RGB оранжевый когда AP готов
-
-**Step 3** — On your phone open Wi-Fi settings / На телефоне открой настройки Wi-Fi
-- Connect to network / Подключись к сети: `ESP32-Setup`
-- Password / Пароль: `12345678`
-
-**Step 4** — Open browser / Открой браузер:
-http://192.168.4.1/settings
-
-**Step 5** — Enter new network credentials / Введи данные новой сети:
-- SSID — network name / имя сети
-- Password — network password / пароль сети
-- Gmail App Password — leave empty to keep current / оставь пустым чтобы не менять
-
-**Step 6** — Press Save & Reboot / Нажми Save & Reboot
-- ESP32 reboots and connects to the new network / ESP32 перезагрузится и подключится к новой сети
-- RGB turns green when connected / RGB станет зелёным когда подключится
-
----
-
-### If ESP32 can't connect / Если ESP32 не может подключиться
-
-If saved network is unavailable ESP32 automatically starts AP mode.
-Если сохранённая сеть недоступна ESP32 автоматически поднимает точку доступа.
-
-Connect to `ESP32-Setup` with password `12345678` and open `192.168.4.1/settings`.
-Подключись к `ESP32-Setup` с паролем `12345678` и открой `192.168.4.1/settings`.
-
----
-
-### Quick reference / Краткая справка
-
-| Action / Действие | How / Как |
+| Situation / Ситуація | Address / Адреса |
 |---|---|
-| Normal start / Обычный старт | Press RST / Нажми RST |
-| Force AP mode / Принудительный AP | RST → hold BOOT 3 sec / RST → держи BOOT 3 сек |
-| Open web UI / Открыть веб | `http://esp32.local` or `http://192.168.1.200` |
-| Open settings / Открыть настройки | `http://esp32.local/settings` |
-| AP settings page / Настройки в AP режиме | `http://192.168.4.1/settings` |
-| AP network name / Имя AP сети | `ESP32-Setup` |
-| AP password / Пароль AP | `12345678` |
+| Main page (same network) | `http://esp32.local` or `http://192.168.1.200` |
+| Settings (same network) | `http://esp32.local/settings` |
+| Main page (AP mode) | `http://192.168.4.1` |
+| Settings (AP mode) | `http://192.168.4.1/settings` |
 
+Settings page allows changing without reflashing / Налаштування без перепрошивки:
+- Wi-Fi SSID and password / SSID та пароль Wi-Fi
+- Gmail App Password / пароль додатку Gmail
 
+Settings saved to EEPROM — survive reboot / Зберігаються в EEPROM — переживають перезавантаження.
 
 ---
 
-## 📱 Bluetooth BLE Control / Управление по Bluetooth
+## 🔌 Boot Modes & Network Switching / Режими завантаження та зміна мережі
+
+### Normal boot / Звичайний запуск
+
+Press RST → release. ESP32 connects to saved network automatically.
+Натисни RST → відпусти. ESP32 підключиться до збереженої мережі.
+
+RGB sequence / RGB послідовність:
+⬜ WHITE (3s) → 🔵 BLUE (connecting) → 🟢 GREEN (ready)
+
+---
+
+### Force AP mode / Примусовий AP режим
+
+Use when you need to configure a new network.
+Використовуй коли потрібно налаштувати нову мережу.
+
+Press RST → release
+Immediately hold BOOT button
+Hold 3 seconds → RGB turns 🟠 ORANGE
+Release BOOT
+Connect to: ESP32-Setup / password: 12345678
+Open browser: http://192.168.4.1/settings
+Enter new credentials → Save & Reboot
+RGB turns 🟢 GREEN when connected to new network
+
+
+> ⚠️ Do NOT hold BOOT before releasing RST — on ESP32-S3 this activates firmware download mode.
+> Always: RST first → release → then hold BOOT.
+
+---
+
+### Auto AP mode / Автоматичний AP режим
+
+If saved network is unreachable after 5 attempts → ESP32 automatically starts AP.
+Якщо збережена мережа недоступна після 5 спроб → ESP32 автоматично піднімає AP.
+
+RGB turns 🟠 ORANGE. Connect to `ESP32-Setup` / `12345678` → open `192.168.4.1/settings`.
+
+---
+
+## 📱 Bluetooth BLE Control / Керування через Bluetooth
 
 ESP32 runs a BLE NUS (Nordic UART Service) server visible as `ESP32-Scanner`.
-Works independently of Wi-Fi — useful when IP address is unknown or network is unavailable.
+Works independently of Wi-Fi — useful when IP is unknown or network is unavailable.
+Працює незалежно від Wi-Fi — зручно коли IP невідомий або мережа недоступна.
 
-### Required App / Приложение
+### Required App / Додаток
 
 | Platform | App | Where |
 |---|---|---|
 | Android | Serial Bluetooth Terminal by Kai Morich | Play Store |
 | iOS | nRF Toolbox or LightBlue | App Store |
 
-Connect to device named `ESP32-Scanner`.
-
 ---
 
-### Commands / Команды
+### Commands / Команди
 
-| Command | Description / Описание |
+| Command | Response / Відповідь |
 |---|---|
-| `scan` | Start full network scan / Запустить сканирование |
-| `status` | WiFi state, IP, RSSI, scanning flag / Статус WiFi и сканирования |
-| `ip` | Current IP address and web URLs / IP адрес и URL веб интерфейса |
-| `results` | List all found devices / Список всех найденных устройств |
-| `help` | Show all commands / Список команд |
+| `scan` | Starts full network scan / Запускає сканування |
+| `status` | WiFi state, IP, RSSI, scan flag / Стан WiFi, IP, RSSI |
+| `ip` | Current IP and web URLs / Поточний IP та URL |
+| `results` | All found devices with MAC, vendor, OS / Всі знайдені пристрої |
+| `help` | All available commands / Всі доступні команди |
 
-During scan — automatic progress update every 30 seconds:
-Scanning... 127/254 (50%) found: 3
-
-On scan complete — automatic notification:
-Scan complete! Found 13 devices. Report sent to email.
+Auto-notifications during scan / Автоповідомлення під час сканування:
+Scanning... 127/254 (50%) found: 3        ← every 30 sec
+Scan complete! Found 13 devices. Report sent to email.   ← on finish
 
 ---
 
-### Usage Scenarios / Сценарии применения
+### Usage Scenarios / Сценарії використання
 
-**Scenario 1 — Unknown IP, new network**
-You powered on ESP32 in a new location and don't know its IP.
-Connect via BLE → type `ip` → get the address → open in browser.
+**Scenario 1 — Unknown IP in new location**
+Connect via BLE → type `ip` → get address → open in browser.
+Підключись через BLE → введи `ip` → отримай адресу → відкрий у браузері.
 
-**Scenario 2 — Quick scan check without opening browser**
-Connected via BLE → type `status` to see if scan is running →
-type `results` to see found devices directly in terminal.
+**Scenario 2 — Quick check without browser**
+Type `status` to see if scan is running → type `results` to see devices in terminal.
+Введи `status` → введи `results` щоб побачити пристрої прямо в терміналі.
 
-**Scenario 3 — Trigger scan remotely**
-You left ESP32 plugged in at home.
-Connect via BLE from anywhere in Bluetooth range →
-type `scan` → wait for completion notification →
+**Scenario 3 — Remote scan trigger**
+ESP32 is at home. Connect via BLE → type `scan` → wait for completion →
 check email for full HTML report.
+ESP32 вдома. Підключись по BLE → `scan` → дочекайся → перевір пошту.
 
-**Scenario 4 — No Wi-Fi at all**
-ESP32 in AP mode (ESP32-Setup network).
-Connect phone to ESP32-Setup →
-simultaneously keep BLE terminal open →
-use `status` to monitor connection state while configuring via web.
-
----
-
-### Network Switching / Переключение сети
-
-**Normal boot / Обычный запуск:**
-Press RST → RGB white (3s) → blue (connecting) → green (ready)
-
-**Force AP mode / Принудительный AP режим:**
-
-Press RST → release
-Immediately hold BOOT
-Hold 3 seconds → RGB turns orange
-Release BOOT
-Connect to: ESP32-Setup / password: 12345678
-Open: http://192.168.4.1/settings
-Enter new network → Save & Reboot
-
-
-**Auto AP mode / Автоматический AP:**
-If saved network unreachable after 5 attempts → ESP32 auto-starts AP.
-Connect to ESP32-Setup and reconfigure via 192.168.4.1/settings.
+**Scenario 4 — Configure network without laptop**
+AP mode active. Connect phone to `ESP32-Setup` + keep BLE terminal open.
+Use `status` to monitor while configuring via `192.168.4.1/settings`.
+AP режим. Підключи телефон до `ESP32-Setup` + тримай BLE термінал відкритим.
 
 ---
 
-### Access Summary / Краткая справка доступа
+## ⚠️ Known Issues / Відомі проблеми
 
-| Situation / Ситуация | Address / Адрес |
-|---|---|
-| Same network / Та же сеть | `http://esp32.local` or `http://192.168.1.200` |
-| AP mode / Режим точки доступа | `http://192.168.4.1` |
-| Settings / Настройки | `http://esp32.local/settings` |
-| AP settings / Настройки в AP | `http://192.168.4.1/settings` |
-| BLE device / BLE устройство | `ESP32-Scanner` |
-| AP network / Сеть AP | `ESP32-Setup` / `12345678` |
-| Full manual / Полный мануал | `docs/manual.html` |
+| Problem / Проблема | Cause / Причина | Solution / Рішення |
+|---|---|---|
+| Infinite RTC_SW_SYS_RST | `qio_opi` in platformio.ini | Remove that line / Видали рядок |
+| COM port not visible | Missing CH340 driver | Install CH341SER.exe |
+| RGB not working | Hardcoded pin number | Use `RGB_BUILTIN` macro |
+| Port busy on upload | Serial Monitor open | Close before Upload |
+| Won't enter bootloader | — | Hold BOOT → press RST → release BOOT |
+| AP not appearing | BOOT held before RST release | RST first → release → then hold BOOT |
+| MAC shows N/A | Randomized MAC (Android/iOS) | Normal — modern devices hide real MAC |
+| Email not sending | Wrong App Password | Regenerate at myaccount.google.com/apppasswords |
+| Starlink AP Isolation | Devices can't reach each other | Use ESP32 softAP mode |
+
+---
+
+## 📅 Changelog / Історія змін
+
+| Date / Дата | Branch / Гілка | Change / Зміна |
+|---|---|---|
+| 27.04.2026 | 01–04 | RGB Serial, WiFi WebServer, Network Info, Scanner + Gmail |
+| 28.04.2026 | 05–06 | Advanced scanner, radar UI, non-blocking loop |
+| 28.04.2026 | 07 | Modular refactor, EEPROM settings, web config |
+| 28.04.2026 | 08–09 | Static IP (192.168.1.200), mDNS (esp32.local) |
+| 29.04.2026 | 10 | FreeRTOS dual-core, AP mode, BOOT button trigger |
+| 29.04.2026 | 11 | BLE NUS control, HTML user manual |
+
+---
+
+## 📝 Notes / Нотатки
+
+Gmail requires App Password — generate at `myaccount.google.com/apppasswords`. Not your regular account password.
+Gmail потребує пароль додатку — не звичайний пароль акаунту.
+
+Full scan (254 hosts + port scan) takes 15–20 minutes.
+Повне сканування (254 хости + порти) займає 15–20 хвилин.
+
+OUI vendor database covers 35 manufacturers — extend `ouiTable[]` in `scanner.cpp` to add more.
+База OUI покриває 35 виробників — розширюй `ouiTable[]` у `scanner.cpp`.
+
+All credentials stored in private repository. Changeable via web UI without reflashing.
+Всі паролі зберігаються у приватному репозиторії. Змінюються через веб без перепрошивки.
